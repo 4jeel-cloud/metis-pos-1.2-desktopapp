@@ -45,15 +45,28 @@ function getPhpConfig() {
     return config; // static PHP has SQLite built in, no flags needed
   }
 
-  // System PHP — may need SQLite extensions loaded explicitly
-  const extPaths = [
-    '/tmp/opencode/php-ext/pdo_sqlite.so',
-    '/tmp/opencode/php-ext/sqlite3.so',
+  // System PHP — check if SQLite PDO is already available
+  try {
+    require('child_process').execFileSync(config.binary, [...config.args, '-r', 'new PDO("sqlite::memory:");'], { stdio: 'pipe', timeout: 5000 });
+    return config; // system PHP already has SQLite
+  } catch {}
+
+  // Try common SQLite extension paths
+  const searchDirs = [
+    '/tmp/opencode/php-ext',
+    '/usr/lib/php/extensions',
+    '/usr/lib/php',
+    '/usr/local/lib/php/extensions',
   ];
-  const pdo = extPaths.find((p) => fs.existsSync(p));
-  const sqlite = extPaths.find((p) => p.endsWith('sqlite3.so') && fs.existsSync(p));
-  if (pdo) config.args.push(`-d extension=${pdo}`);
-  if (sqlite && sqlite !== pdo) config.args.push(`-d extension=${sqlite}`);
+  for (const dir of searchDirs) {
+    if (!fs.existsSync(dir)) continue;
+    const files = fs.readdirSync(dir);
+    const pdo = files.find(f => f.startsWith('pdo_sqlite'));
+    const sqlite3 = files.find(f => f.startsWith('sqlite3'));
+    if (pdo) config.args.push(`-d extension=${path.join(dir, pdo)}`);
+    if (sqlite3 && sqlite3 !== pdo) config.args.push(`-d extension=${path.join(dir, sqlite3)}`);
+    if (pdo || sqlite3) break;
+  }
 
   return config;
 }

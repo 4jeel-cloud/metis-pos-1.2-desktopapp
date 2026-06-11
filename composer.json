@@ -80,9 +80,9 @@
             "@php artisan package:discover --ansi"
         ],
         "post-install-cmd": [
-            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php -r \"!file_exists('.env') && copy('.env.example', '.env');\"",
             "@php artisan key:generate --ansi",
-            "@php -r \"file_exists('public/storage');\" || artisan storage:link --ansi",
+            "@php artisan storage:link --ansi",
             "@php artisan ns:translate --symlink --force",
             "@php artisan modules:symlink"
         ],

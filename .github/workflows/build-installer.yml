@@ -18,6 +18,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build frontend assets
+        run: npm run build
+
       - name: Download PHP for Windows
         run: node scripts/download-php.mjs win
 
@@ -44,6 +47,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build frontend assets
+        run: npm run build
+
       - name: Download PHP for Linux
         run: node scripts/download-php.mjs linux
 
@@ -55,5 +61,7 @@ jobs:
       - name: Upload artifacts to release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist-electron/*.AppImage;dist-electron/*.deb
+          files: |
+            dist-electron/*.AppImage
+            dist-electron/*.deb
           token: ${{ github.token }}
