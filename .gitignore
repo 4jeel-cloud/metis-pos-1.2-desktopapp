@@ -1,0 +1,17 @@
+node_modules/
+vendor/
+.hot
+public/hot
+public/build/
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+.phpunit.result.cache
+dist-electron/
+php-binary/linux/
+php-binary/win/
+php-binary/mac/
+.env
+build/
