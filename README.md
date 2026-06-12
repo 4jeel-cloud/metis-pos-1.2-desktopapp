@@ -35,6 +35,16 @@
 
 ---
 
+## What's Fixed in v1.0.0
+
+- **No JavaScript errors on launch** — removed MySQL/Telescope dependency that caused startup crashes
+- **White logo in sidebar** — sidebar always uses the white logo (sidebar background is always dark)
+- **Persistent login sessions** — app now uses a fixed port (8686) so session cookies stay valid across restarts; no more "sign in / sign up" screen on every relaunch
+- **30-day session lifetime** — you stay logged in for 30 days without re-entering credentials
+- **SQLite bundled** — fully offline, no external database required
+
+---
+
 > **Forked from [NexoPOS](https://github.com/Blair2004/NexoPOS)** — the original POS system by Blair2004, licensed under GPL-3.0.
 
 MetisPOS is a **desktop Point of Sale system** built with **Laravel 12**, **TailwindCSS 4**, **Vue.js 3**, and **Electron**. It includes inventory management, customer management, orders, payments, reporting, and more — all running locally with a bundled PHP server and SQLite database.
