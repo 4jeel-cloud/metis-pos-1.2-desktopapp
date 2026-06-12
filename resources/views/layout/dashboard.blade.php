@@ -45,10 +45,9 @@ if ( Auth::check() ) {
                         <div class="logo py-4 flex justify-center items-center">
                             @if ( ns()->option->get( 'ns_store_rectangle_logo' ) )
                             <img src="{{ ns()->option->get( 'ns_store_rectangle_logo' ) }}" class="w-11/12" alt="logo"/>
-                            @elseif ( $theme === 'dark' )
-                            <img src="{{ asset( 'svg/metis-pos-logo-white.png' ) }}" class="w-8/12" alt="MetisPOS"/>
                             @else
-                            <img src="{{ asset( 'svg/metis-pos-logo.png' ) }}" class="w-8/12" alt="MetisPOS"/>
+                            {{-- Sidebar background is always dark (zinc-900) so always use white logo --}}
+                            <img src="{{ asset( 'svg/metis-pos-logo-white.png' ) }}" class="w-8/12" alt="MetisPOS"/>
                             @endif
                         </div>
                         <ul id="aside-menu">

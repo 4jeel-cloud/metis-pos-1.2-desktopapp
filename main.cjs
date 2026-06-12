@@ -95,7 +95,7 @@ function writeEnvFile() {
     'APP_ENV=production',
     `APP_KEY=${generateAppKey()}`,
     'APP_DEBUG=false',
-    'APP_URL=http://127.0.0.1',
+    `APP_URL=http://127.0.0.1:${PREFERRED_PORT}`,
     'DB_CONNECTION=sqlite',
     'DB_HOST=',
     `DB_DATABASE=${DB_PATH}`,
@@ -103,7 +103,7 @@ function writeEnvFile() {
     'DB_PASSWORD=',
     'DB_PREFIX=ns_',
     'SESSION_DRIVER=file',
-    'SESSION_LIFETIME=120',
+    'SESSION_LIFETIME=43200',
     'SESSION_DOMAIN=127.0.0.1',
     'SESSION_COOKIE=metis-pos_session',
     'CACHE_DRIVER=file',
@@ -181,6 +181,12 @@ function ensureEnvFile() {
   if (!/^DB_PREFIX=/m.test(content)) {
     upsert('DB_PREFIX', 'ns_');
   }
+
+  // Fix APP_URL to include the fixed port so sessions survive restarts
+  upsert('APP_URL', `http://127.0.0.1:${PREFERRED_PORT}`);
+
+  // Extend session lifetime to 30 days so login persists
+  upsert('SESSION_LIFETIME', '43200');
 
   // Ensure Telescope is disabled — it requires MySQL which isn't bundled
   if (!/^TELESCOPE_ENABLED=/m.test(content)) {
@@ -286,14 +292,27 @@ async function runSetup() {
 }
 
 // ── PHP Server ───────────────────────────────────────────────────
+const PREFERRED_PORT = 8686; // Fixed port so sessions persist across restarts
+
 function getAvailablePort() {
   return new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.listen(0, '127.0.0.1', () => {
-      const port = server.address().port;
-      server.close(() => resolve(port));
-    });
-    server.on('error', reject);
+    // First try the preferred fixed port so the session cookie stays valid
+    const tryPort = (port) => {
+      const server = net.createServer();
+      server.once('error', () => {
+        // Preferred port is in use — fall back to a random one
+        const fallback = net.createServer();
+        fallback.listen(0, '127.0.0.1', () => {
+          const p = fallback.address().port;
+          fallback.close(() => resolve(p));
+        });
+        fallback.on('error', reject);
+      });
+      server.listen(port, '127.0.0.1', () => {
+        server.close(() => resolve(port));
+      });
+    };
+    tryPort(PREFERRED_PORT);
   });
 }
 
