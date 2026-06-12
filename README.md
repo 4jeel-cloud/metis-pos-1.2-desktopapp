@@ -1,8 +1,43 @@
-# MetisPOS
+<p align="center">
+  <img src="main logo.png" alt="MetisPOS Logo" width="180"/>
+</p>
+
+<h1 align="center">MetisPOS</h1>
+
+<p align="center">
+  A desktop Point of Sale system — runs entirely offline, no server required.
+</p>
+
+<p align="center">
+  <a href="https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases/tag/v1.0.0">
+    <img src="https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square" alt="Version"/>
+  </a>
+  <a href="https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases/tag/v1.0.0">
+    <img src="https://img.shields.io/badge/platform-Windows%20x64-brightgreen?style=flat-square&logo=windows" alt="Windows"/>
+  </a>
+  <a href="https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/blob/master/LICENSE">
+    <img src="https://img.shields.io/badge/license-GPL--3.0-orange?style=flat-square" alt="License"/>
+  </a>
+</p>
+
+---
+
+## Download
+
+| Platform | Type | Link |
+|----------|------|------|
+| Windows x64 | Installer (recommended) | [metis-pos-1.0.0-x64.exe](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases/download/v1.0.0/metis-pos-1.0.0-x64.exe) |
+| Windows x64 | Portable (no install needed) | [metis-pos-1.0.0-x64-portable.exe](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases/download/v1.0.0/metis-pos-1.0.0-x64-portable.exe) |
+
+> All releases: [github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases)
+
+**First launch credentials:** username `admin` / password `metisadmin`
+
+---
 
 > **Forked from [NexoPOS](https://github.com/Blair2004/NexoPOS)** — the original POS system by Blair2004, licensed under GPL-3.0.
 
-MetisPOS is a **desktop Point of Sale system** built with **Laravel 12**, **TailwindCSS 4**, **Vue.js 3**, and **Electron**. It includes inventory management, customer management, orders, payments, reporting, and more — all running locally with a bundled PHP server.
+MetisPOS is a **desktop Point of Sale system** built with **Laravel 12**, **TailwindCSS 4**, **Vue.js 3**, and **Electron**. It includes inventory management, customer management, orders, payments, reporting, and more — all running locally with a bundled PHP server and SQLite database.
 
 ---
 
@@ -136,15 +171,6 @@ npm run test:e2e
 # E2E with UI
 npm run test:e2e:ui
 ```
-
----
-
-## Default Credentials
-
-- **Username:** `admin`
-- **Password:** `metisadmin`
-
-Change these after first login.
 
 ---
 
