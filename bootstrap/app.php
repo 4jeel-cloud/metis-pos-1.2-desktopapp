@@ -42,4 +42,15 @@ if ( $storagePath = ( $_ENV[ 'APP_STORAGE_PATH' ] ?? $_SERVER[ 'APP_STORAGE_PATH
     $app->useStoragePath( $storagePath );
 }
 
+/**
+ * Allow override of the .env file path via APP_ENV_PATH
+ * environment variable — used by the Electron desktop app
+ * so that .env lives in a persistent user data directory.
+ */
+$envPath = $_ENV[ 'APP_ENV_PATH' ] ?? $_SERVER[ 'APP_ENV_PATH' ] ?? null;
+if ( $envPath && file_exists( $envPath ) ) {
+    $app->loadEnvironmentFrom( basename( $envPath ) );
+    $app->useEnvironmentPath( dirname( $envPath ) );
+}
+
 return $app;

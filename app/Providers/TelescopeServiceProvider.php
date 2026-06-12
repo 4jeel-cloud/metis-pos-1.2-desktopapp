@@ -12,10 +12,24 @@ use Laravel\Telescope\TelescopeApplicationServiceProvider;
 class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
 {
     /**
+     * Whether Telescope is enabled. When disabled we skip all registration
+     * and booting so that no DB connection is attempted (the bundled PHP
+     * in the desktop app does not include pdo_mysql).
+     */
+    protected function telescopeEnabled(): bool
+    {
+        return (bool) env( 'TELESCOPE_ENABLED', true );
+    }
+
+    /**
      * Register any application services.
      */
     public function register(): void
     {
+        if ( ! $this->telescopeEnabled() ) {
+            return;
+        }
+
         Telescope::night();
 
         $this->hideSensitiveRequestDetails();
@@ -57,6 +71,10 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
      */
     protected function gate(): void
     {
+        if ( ! $this->telescopeEnabled() ) {
+            return;
+        }
+
         if ( Helper::installed() ) {
             $adminRole = Role::namespace( Role::ADMIN );
             $users = collect( [] );

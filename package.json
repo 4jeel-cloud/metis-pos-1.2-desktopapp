@@ -19,10 +19,13 @@
     "test:e2e:report": "playwright show-report playwright-report --host 0.0.0.0",
     "test:e2e:codegen": "playwright/codegen.sh",
     "download-php": "node scripts/download-php.mjs",
-    "dist:linux": "node scripts/download-php.mjs linux && electron-builder --linux",
-    "dist:win": "node scripts/download-php.mjs win && electron-builder --win",
-    "dist:mac": "node scripts/download-php.mjs mac && electron-builder --mac",
-    "dist:all": "node scripts/download-php.mjs linux && node scripts/download-php.mjs win && node scripts/download-php.mjs mac && electron-builder --linux --win --mac"
+    "clean:dist": "node -e \"const{rmSync,existsSync}=require('fs');const p='dist-electron';if(existsSync(p)){rmSync(p,{recursive:true,force:true});console.log('Cleaned '+p)}\"",
+    "gen:icon": "node scripts/gen-icon.mjs",
+    "prebuild:dist": "npm run gen:icon && npm run build",
+    "dist:linux": "npm run prebuild:dist && npm run clean:dist && node scripts/download-php.mjs linux && electron-builder --linux",
+    "dist:win": "npm run prebuild:dist && npm run clean:dist && node scripts/download-php.mjs win && electron-builder --win",
+    "dist:mac": "npm run prebuild:dist && npm run clean:dist && node scripts/download-php.mjs mac && electron-builder --mac",
+    "dist:all": "npm run clean:dist && node scripts/download-php.mjs linux && node scripts/download-php.mjs win && node scripts/download-php.mjs mac && electron-builder --linux --win --mac"
   },
   "build": {
     "appId": "com.metis-pos.app",
@@ -35,6 +38,9 @@
     "files": [
       "main.cjs",
       "preload.cjs",
+      "main logo.png",
+      "build/icon.ico",
+      "artisan",
       "public/**/*",
       "public/build/assets/**/*",
       "config/**/*",
@@ -54,17 +60,49 @@
       "composer.json",
       "composer.lock"
     ],
+    "asarUnpack": [
+      "main.cjs",
+      "preload.cjs",
+      "main logo.png",
+      "build/icon.ico",
+      "artisan",
+      "public/**/*",
+      "config/**/*",
+      "resources/**/*",
+      "app/**/*",
+      "bootstrap/**/*",
+      "vendor/**/*",
+      "database/**/*",
+      "routes/**/*",
+      "modules/**/*",
+      "lang/**/*",
+      "storage/**/*",
+      "composer.json",
+      "composer.lock"
+    ],
     "extraResources": [
       {
         "from": "php-binary/${os}",
         "to": "php-binary",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64"] },
-        { "target": "deb", "arch": ["x64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "category": "Office",
       "artifactName": "metis-pos-${version}-${arch}.${ext}"
@@ -73,11 +111,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "metis-pos-${version}-${arch}.${ext}"
@@ -102,7 +144,10 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "category": "public.app-category.business",
@@ -121,8 +166,10 @@
     "electron-builder": "^26.0.0",
     "laravel-echo": "^2.3.0",
     "laravel-vite-plugin": "^2.1.0",
+    "png-to-ico": "^3.0.1",
     "pusher-js": "^8.4.0",
     "sass": "^1.97.3",
+    "sharp": "^0.35.1",
     "tailwindcss": "^4.1.13",
     "vite": "^7.3.1",
     "vite-plugin-mkcert": "^1.17.9"

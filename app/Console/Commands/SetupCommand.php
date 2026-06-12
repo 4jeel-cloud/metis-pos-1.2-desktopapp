@@ -70,6 +70,15 @@ class SetupCommand extends Command
         }
 
         if (
+            env( 'DB_CONNECTION' ) === 'sqlite'
+        ) {
+            if (
+                env( 'DB_DATABASE', null ) === null ||
+                env( 'DB_PREFIX', null ) === null
+            ) {
+                return $this->error( __( 'Unable to proceed, looks like the database can\'t be used.' ) );
+            }
+        } elseif (
             env( 'DB_HOST', null ) === null ||
             env( 'DB_DATABASE', null ) === null ||
             env( 'DB_USERNAME', null ) === null ||

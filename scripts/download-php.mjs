@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
-import { createWriteStream, existsSync, mkdirSync, chmodSync, writeFileSync, mkdtempSync } from 'fs';
+import { createWriteStream, existsSync, mkdirSync, chmodSync, writeFileSync, mkdtempSync, rmSync } from 'fs';
 import { get } from 'https';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { tmpdir } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const APP_DIR = join(__dirname, '..');
@@ -86,7 +87,7 @@ async function downloadWin() {
   if (!existsSync(extDir)) mkdirSync(extDir, { recursive: true });
 
   // Write extraction script to temp file to avoid shell escaping issues
-  const tmpDir = mkdtempSync('/tmp/php-extract-');
+  const tmpDir = mkdtempSync(join(tmpdir(), 'php-extract-'));
   const scriptPath = join(tmpDir, 'extract.py');
   writeFileSync(scriptPath, `import zipfile, os, sys
 
@@ -109,10 +110,16 @@ for entry in z.namelist():
         with open(out, 'wb') as f:
             f.write(z.read(entry))
 `);
-  execSync(`python3 "${scriptPath}"`, { stdio: 'pipe' });
+  const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+  execSync(`"${pythonCmd}" "${scriptPath}"`, { stdio: 'pipe' });
 
   // Clean up temp dir and zip
-  try { execSync(`rm -rf "${tmpDir}" "${tmpZip}"`, { stdio: 'pipe' }); } catch {}
+  try {
+    execSync(`rm -rf "${tmpDir}" "${tmpZip}"`, { stdio: 'pipe' });
+  } catch {
+    try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    try { rmSync(tmpZip, { force: true }); } catch {}
+  }
 
   // Generate php.ini enabling SQLite
   const iniPath = join(destDir, 'php.ini');
@@ -120,8 +127,24 @@ for entry in z.namelist():
     writeFileSync(iniPath, [
       '[PHP]',
       'extension_dir = "ext"',
+      'extension=php_bz2.dll',
+      'extension=php_curl.dll',
+      'extension=php_fileinfo.dll',
+      'extension=php_gd.dll',
+      'extension=php_gettext.dll',
+      'extension=php_intl.dll',
+      'extension=php_mbstring.dll',
+      'extension=php_openssl.dll',
       'extension=php_pdo_sqlite.dll',
+      'extension=php_sockets.dll',
+      'extension=php_sodium.dll',
       'extension=php_sqlite3.dll',
+      'extension=php_xsl.dll',
+      'extension=php_zip.dll',
+      'max_execution_time = 0',
+      'max_input_time = 600',
+      'default_socket_timeout = 300',
+      'memory_limit = 512M',
       'display_errors = Off',
       'log_errors = On',
       'error_log = php_errors.log',
