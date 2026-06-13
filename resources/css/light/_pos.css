@@ -178,7 +178,7 @@
                     @apply bg-info-secondary border-r border-info-secondary;
 
                     &:hover, &:active {
-                        @apply bg-secondary;
+                        @apply bg-info-tertiary;
                     }
                 }
 
@@ -390,7 +390,7 @@
         }
         .ns-payment-buttons {
             .ns-payment-type-button {
-                @apply text-white bg-secondary;
+                @apply text-white bg-info-tertiary;
             }
             .ns-submit-button {
                 @apply bg-success-tertiary text-white;
