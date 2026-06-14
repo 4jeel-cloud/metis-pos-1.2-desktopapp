@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "name": "metispos1",
+  "description": "MetisPOS workspace — run npm scripts from here or from metis-pos-1.2-desktopapp/",
+  "scripts": {
+    "install:app": "npm install --prefix metis-pos-1.2-desktopapp",
+    "build": "npm run build --prefix metis-pos-1.2-desktopapp",
+    "start": "npm run start --prefix metis-pos-1.2-desktopapp",
+    "dist:win": "npm run dist:win --prefix metis-pos-1.2-desktopapp",
+    "dist:linux": "npm run dist:linux --prefix metis-pos-1.2-desktopapp",
+    "dist:mac": "npm run dist:mac --prefix metis-pos-1.2-desktopapp"
+  }
+}
