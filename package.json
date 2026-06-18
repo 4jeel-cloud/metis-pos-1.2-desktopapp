@@ -164,7 +164,7 @@
     "dotenv": "^17.3.1",
     "electron": "^35.0.0",
     "electron-builder": "^26.0.0",
-    "laravel-echo": "^2.3.0",
+    "laravel-echo": "^2.3.7",
     "laravel-vite-plugin": "^2.1.0",
     "png-to-ico": "^3.0.1",
     "pusher-js": "^8.4.0",
