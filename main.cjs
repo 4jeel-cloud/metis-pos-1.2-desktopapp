@@ -291,6 +291,31 @@ async function runSetup() {
   console.log('[Setup] Setup complete.');
 }
 
+/**
+ * Apply pending migrations for an already-installed database.
+ * Runs on every launch after an app update so new tables/columns
+ * introduced by newer versions are created. Safe to run repeatedly
+ * (Laravel skips applied migrations).
+ */
+function runMigrations() {
+  const { binary: phpBin, args: extensions } = getPhpConfig();
+  const phpEnv = getPhpEnv();
+
+  console.log('[Setup] Applying pending migrations...');
+  try {
+    execFileSync(phpBin, phpArgs(extensions, path.join(APP_DIR, 'artisan'), 'migrate', '--force'), {
+      cwd: APP_DIR,
+      env: phpEnv,
+      stdio: 'pipe',
+      timeout: 300000,
+    });
+    console.log('[Setup] Migrations up to date.');
+  } catch (err) {
+    // Never block startup on a migration error — the app may still be usable.
+    console.error('[Setup] Migration failed:', err.stderr?.toString() || err.message);
+  }
+}
+
 // ── PHP Server ───────────────────────────────────────────────────
 const PREFERRED_PORT = 8686; // Fixed port so sessions persist across restarts
 
@@ -465,6 +490,11 @@ app.whenReady().then(async () => {
       app.quit();
       return;
     }
+  }
+
+  // Existing installations: apply any migrations added by an app update
+  if (!databaseNeedsSetup()) {
+    runMigrations();
   }
 
   // Start the PHP server and open the window
