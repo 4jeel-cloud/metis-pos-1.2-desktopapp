@@ -31,3 +31,4 @@ php_err.txt
 php_out.txt
 php_stderr.txt
 php_stdout.txt
+tests/database.sqlite
