@@ -115,9 +115,24 @@ class MarketplaceService
 
         $bodyHash = hash( 'sha256', $jsonBody );
 
-        $privateKey = base64_decode(
-            decrypt( $identity['private_key'] ?? '' )
-        );
+        $privateKey = null;
+
+        if ( ! empty( $identity['private_key'] ?? '' ) ) {
+            try {
+                $privateKey = base64_decode(
+                    decrypt( $identity['private_key'] )
+                );
+            } catch ( \Throwable $e ) {
+                // Stale identity: the APP_KEY changed since the identity was
+                // stored (e.g. app reinstallation or .env repair). Degrade to
+                // an unauthenticated public marketplace request instead of 500.
+                $privateKey = null;
+            }
+        }
+
+        if ( $privateKey === null ) {
+            return;
+        }
 
         /**
          * This replaces your old:
