@@ -32,9 +32,11 @@ return new class extends Migration
             $table->string( 'name' );
             $table->string( 'type' )->nullable();
             $table->string( 'status' )->default( TransactionHistory::STATUS_PENDING ); // active, pending, deleting
-            $table->float( 'value', 18, 5 )->default( 0 );
+            $table->decimal( 'value', 18, 5 )->default( 0 );
             $table->datetime( 'trigger_date' )->nullable();
             $table->integer( 'rule_id' )->nullable();
+            $table->unsignedBigInteger( 'journal_id' )->nullable();
+            $table->index( 'journal_id', 'transactions_histories_journal_index' );
             $table->integer( 'author_id' );
             $table->timestamps();
         } );

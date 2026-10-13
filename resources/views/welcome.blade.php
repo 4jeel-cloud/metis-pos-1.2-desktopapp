@@ -4,7 +4,13 @@
     <div id="page-container" class="h-full w-full flex">
         <div class="container flex-auto flex-col items-center justify-center flex m-4 sm:mx-auto">
             <div class="flex justify-center items-center py-6">
-                <img class="w-32" src="{{ asset( 'svg/metis-pos-logo.png' ) }}" alt="MetisPOS">
+                @if ( ! ns()->option->get( 'ns_store_square_logo', false ) )
+                <a href="https://docs.metis-pos.com" target="_blank">
+                    <img class="max-w-32" src="{{ asset( 'svg/metis-pos-logo.png' ) }}" alt="MetisPOS">
+                </a>
+                @else
+                <img class="max-w-[200px]" src="{{ ns()->option->get( 'ns_store_square_logo' ) }}" alt="MetisPOS">
+                @endif
             </div>
             <div class="ns-box rounded shadow w-full md:w-2/5 lg:w-2/5 overflow-hidden">
                 <div id="section-header" class="ns-box-header p-4">

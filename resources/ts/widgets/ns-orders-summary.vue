@@ -2,7 +2,10 @@
     <div id="ns-orders-summary" class="flex ns-box flex-auto flex-col shadow rounded-lg overflow-hidden">
         <div class="p-2 flex title ns-box-header items-center justify-between border-b">
             <h3 class="font-semibold">{{ __( 'Recents Orders' ) }}</h3>
-            <div class="flex justify-between">
+            <div class="flex items-center justify-between">
+                <div class="px-1">
+                    <ns-widget-layout-selector :widget="widget"></ns-widget-layout-selector>
+                </div>
                 <div class="px-1">
                     <ns-icon-button class="widget-handle" className="la-expand-arrows-alt"></ns-icon-button>
                 </div>
@@ -28,7 +31,7 @@
                     <h3 class="text-lg font-semibold">{{ __( 'Order' ) }} : {{ order.code }}</h3>
                     <div class="flex -mx-2">
                         <div class="px-1">
-                            <h4 class="text-semibold text-xs">
+                            <h4 class="text-semibold text-fontcolor text-xs">
                                 <i class="lar la-user-circle"></i>
                                 <span>{{ order.user.username }}</span>
                             </h4>
@@ -56,6 +59,7 @@ import { nsCurrency } from '~/filters/currency';
 import { __ } from '~/libraries/lang';
 export default {
     name: 'ns-orders-summary',
+    props: [ 'widget' ],
     data() {
         return {
             orders: [],

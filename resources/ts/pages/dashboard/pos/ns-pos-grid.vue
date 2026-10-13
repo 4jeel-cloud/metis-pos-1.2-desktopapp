@@ -11,18 +11,7 @@
         </div>
         <div id="grid-container" class="rounded shadow  overflow-hidden flex-auto flex flex-col">
             <div id="grid-header" class="p-2 border-b ">
-                <div class="border rounded flex  overflow-hidden">
-                    <button :title="__( 'Search for products.' )" @click="openSearchPopup()" class="w-10 h-10 border-r  outline-hidden">
-                        <i class="las la-search"></i>
-                    </button>
-                    <button :title="__( 'Toggle merging similar products.' )" @click="posToggleMerge()" :class="settings.ns_pos_items_merge ? 'pos-button-clicked' : ''" class="outline-hidden w-10 h-10 border-r ">
-                        <i class="las la-compress-arrows-alt"></i>
-                    </button>
-                    <button :title="__( 'Toggle auto focus.' )" @click="options.ns_pos_force_autofocus = ! options.ns_pos_force_autofocus" :class="options.ns_pos_force_autofocus ? 'pos-button-clicked' : ''" class="outline-hidden w-10 h-10 border-r ">
-                        <i class="las la-barcode"></i>
-                    </button>
-                    <input ref="search" v-model="barcode" type="text" class="flex-auto outline-hidden px-2 ">
-                </div>
+                <ns-pos-product-entry-toolbar></ns-pos-product-entry-toolbar>
             </div>
             <div style="height: 0px">
                 <div v-if="isLoading" class="fade-in-entrance ns-loader">
@@ -76,7 +65,7 @@
                     <div @click="loadCategories( category )" v-for="category of categories" :key="category.id" 
                         class="cell-item w-full h-36 cursor-pointer border flex flex-col items-center justify-center overflow-hidden relative">
                         <div class="h-full w-full flex items-center justify-center">
-                            <img v-if="category.preview_url" :src="category.preview_url" class="object-cover h-full" :alt="category.name">
+                            <img v-if="category.preview_url" :src="category.preview_url" class="object-cover h-full w-full" :alt="category.name">
                             <i class="las la-image text-6xl" v-if="! category.preview_url"></i>
                         </div>
                         <div class="w-full absolute z-10 -bottom-10">
@@ -100,8 +89,8 @@
                     <div @click="addToTheCart( product )" v-for="product of products" :key="product.id" 
                         class="cell-item w-full h-36 cursor-pointer border flex flex-col items-center justify-center overflow-hidden relative">
                         <div class="h-full w-full flex items-center justify-center overflow-hidden">
-                            <img v-if="product.galleries && product.galleries.filter( i => i.featured ).length > 0" :src="product.galleries.filter( i => i.featured )[0].url" class="object-cover h-full" :alt="product.name"/>
-                            <img v-else-if="hasNoFeatured( product )" :src="product.galleries[0].url" class="object-cover h-full" :alt="product.name"/>
+                            <img v-if="product.galleries && product.galleries.filter( i => i.featured ).length > 0" :src="product.galleries.filter( i => i.featured )[0].url" class="object-cover h-full w-full" :alt="product.name"/>
+                            <img v-else-if="hasNoFeatured( product )" :src="product.galleries[0].url" class="object-cover h-full w-full" :alt="product.name"/>
                             <i v-else="! product.galleries || product.galleries.filter( i => i.featured ).length === 0" class="las la-image text-6xl"></i>
                         </div>
                         <div class="w-full absolute z-10 -bottom-10">
@@ -130,18 +119,22 @@
         </div>
     </div>
 </template>
-<script >
+<script lang="ts">
 import { nsHttpClient, nsSnackBar } from '../../../bootstrap'
 import switchTo from "~/libraries/pos-section-switch";
 import nsPosSearchProductVue from '~/popups/ns-pos-search-product.vue';
 import { __ } from '~/libraries/lang';
 import { nsCurrency, nsRawCurrency } from '~/filters/currency';
+import NsPosGridWirelessBarcode from './ns-pos-grid-wireless-barcode.vue';
+import NsPosProductEntryToolbar from './ns-pos-product-entry-toolbar.vue';
+import { ProductUnitPromise } from './queues/products/product-unit';
+
+declare const nsNotice;
 
 export default {
     name: 'ns-pos-grid',
     data() {
         return {
-            items: Array.from({length: 1000}, (_, index) => ({ data: '#' + index })),
             products: [],
             pinnedProducts: [],
             cartProductsSubscribe: null,
@@ -165,6 +158,9 @@ export default {
             gridItemsWidth: 0,
             gridItemsHeight:0,
             isLoading: false,
+            // ...
+            wirelessStateSubscriber: null,
+            wirelessBarcodeConnected: false,
         }
     },
     computed: {
@@ -179,9 +175,13 @@ export default {
             return POS.settings.getValue().urls.categories_url; 
         }
     },
+    components: {
+        'ns-pos-grid-wireless-barcode': NsPosGridWirelessBarcode,
+        'ns-pos-product-entry-toolbar': NsPosProductEntryToolbar,
+    },
     watch: {
         options: {
-            handler() {
+            handler( oldVal, newVal ) {
                 if ( this.options.ns_pos_force_autofocus ) {
                     clearTimeout( this.searchTimeout );
 
@@ -231,47 +231,6 @@ export default {
 
         this.orderSubscription      =   POS.order.subscribe( order => this.order = order );
 
-        this.interval   =   setInterval( () => this.checkFocus(), 500 );
-
-        /**
-         * let's register hotkeys
-         */
-        for( let shortcut in nsShortcuts ) {
-            /**
-             * let's declare only shortcuts that
-             * works on the pos grid and that doesn't
-             * expect any popup to be visible
-             */
-            if ([
-                    'ns_pos_keyboard_quick_search',
-                ].includes( shortcut ) ) {
-                nsHotPress
-                    .create( 'search-popup' )
-                    .whenNotVisible([ '.is-popup', '#product-search' ])
-                    .whenPressed( nsShortcuts[ shortcut ] !== null ? nsShortcuts[ shortcut ].join( '+' ) : null, ( event ) => {
-                        event.preventDefault();
-                        this.openSearchPopup();
-                });
-            }
-
-            /**
-             * let's declare only shortcuts that
-             * works on the pos grid and that doesn't
-             * expect any popup to be visible
-             */
-            if ([
-                    'ns_pos_keyboard_toggle_merge',
-                ].includes( shortcut ) ) {
-                nsHotPress
-                    .create( 'toggle-merge' )
-                    .whenNotVisible([ '.is-popup' ])
-                    .whenPressed( nsShortcuts[ shortcut ] !== null ? nsShortcuts[ shortcut ].join( '+' ) : null, ( event ) => {
-                        event.preventDefault();
-                        this.posToggleMerge();
-                });
-            }
-        }
-
     },
     unmounted() {
         this.orderSubscription.unsubscribe();
@@ -280,11 +239,7 @@ export default {
         this.settingsSubscriber.unsubscribe();
         this.optionsSubscriber.unsubscribe();
         this.cartProductsSubscribe.unsubscribe();
-
-        clearInterval( this.interval );
-
-        nsHotPress.destroy( 'search-popup' );
-        nsHotPress.destroy( 'toggle-merge' );
+        this.wirelessStateSubscriber?.unsubscribe();
     },
     methods: {
         __, 
@@ -361,9 +316,31 @@ export default {
 
                 nsHttpClient.get( url )
                     .subscribe({
-                        next: result => {
-                            this.barcode     =   '';
-                            const product    =   {};
+                        next: async (result: any) => {
+                            this.barcode    =   '';
+                            const product   =   {};
+
+                            /**
+                             * it might happen, but in case the unit is not defined,
+                             * if we have enough information, we can display a popup for showing
+                             * the user to select a unit quantity. This is the case for products with multiple unit quantities.
+                             */
+                            if ( result.unit === null && result.product.id ) {
+                                const fetchUnitPromise = new ProductUnitPromise({
+                                    $original: () => {
+                                        return result.product;
+                                    }, 
+                                });
+
+                                try {
+                                    const fetchResult = <{ unit_quantity_id: number, unit_name: string, $quantities: () => any }>(await fetchUnitPromise.run());
+                                    const unitQuantityId = fetchResult.unit_quantity_id;
+                                    result.unitQuantity = result.product.unit_quantities.find( uq => uq.id === unitQuantityId );
+                                    result.unit = result.unitQuantity.unit;
+                                } catch ( error ) {
+                                    return nsSnackBar.error( __( 'An unexpected error occurred while fetching the unit quantity for this product.' ) );
+                                }
+                            }
 
                             product.name                    =   result.product.name;
                             product.id                      =   result.product.id;
@@ -376,6 +353,7 @@ export default {
                             product.price_gross             =   result.unitQuantity.sale_price_gross;
                             product.price_net               =   result.unitQuantity.sale_price_net;
                             product.unit_name               =   result.unit.name;
+                            product.unitQuantity            =   result.unitQuantity;
                             
                             // Check if this is a scale barcode with embedded data
                             if ( result.scale ) {
@@ -412,8 +390,7 @@ export default {
                                     );
                                 }
                             }
-                            
-                            console.log( JSON.parse( JSON.stringify( product ) ) );
+
                             POS.addToCart( product );
                         },
                         error: ( error ) => {
@@ -491,6 +468,27 @@ export default {
 
         addToTheCart( product ) {
             POS.addToCart( product );
+        },
+
+        inviteToMyNexoPOSConnexion() {
+            nsNotice.info( 
+                __( 'Authentication Required' ),
+                __( 'You need to connect your installation to My NexoPOS for using websocket features.' ), {
+                actions: {
+                    close: {
+                        type: 'info',
+                        label: __( 'No thanks' ),
+                    },
+                    confirm: {
+                        label: __( 'Continue' ),
+                        type: 'error',
+                        onClick: ( instance ) => {
+                            const settings  =   POS.settings.getValue();
+                            document.location = settings.urls.marketplace_url;
+                        }
+                    }
+                }
+            })
         }
     }
 }

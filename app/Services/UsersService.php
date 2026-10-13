@@ -16,6 +16,7 @@ use App\Models\UserWidget;
 use Exception;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -318,10 +319,40 @@ class UsersService
     }
 
     /**
+     * Persist the complete widget layout for a user.
+     *
+     * @param array<int, array{component-name: string, class-name: class-string, layout: ?string}> $widgets
+     */
+    public function storeWidgetLayout( array $widgets, User $user ): array
+    {
+        DB::transaction( function () use ( $user, $widgets ): void {
+            User::whereKey( $user->getKey() )->lockForUpdate()->firstOrFail();
+
+            UserWidget::where( 'user_id', $user->id )->delete();
+
+            foreach ( $widgets as $position => $widgetConfig ) {
+                UserWidget::create( [
+                    'identifier' => $widgetConfig['component-name'],
+                    'class_name' => $widgetConfig['class-name'],
+                    'column' => 'dashboard',
+                    'position' => $position,
+                    'user_id' => $user->id,
+                    'layout' => $widgetConfig['layout'],
+                ] );
+            }
+        }, attempts: 3 );
+
+        return [
+            'status' => 'success',
+            'message' => __( 'The widgets were successfully updated.' ),
+        ];
+    }
+
+    /**
      * Will generate a token for either the
      * logged user or for the provided user
      */
-    public function createToken( $name, ?User $user = null ): array
+    public function createToken( string $name, ?User $user = null ): array
     {
         if ( $user === null ) {
             /**
@@ -355,7 +386,7 @@ class UsersService
         return $user->tokens()->orderBy( 'created_at', 'desc' )->get();
     }
 
-    public function deleteToken( $tokenId, ?User $user = null )
+    public function deleteToken( string $tokenId, ?User $user = null )
     {
         if ( $user === null ) {
             /**
@@ -372,14 +403,30 @@ class UsersService
         ];
     }
 
-    public function checkPermission( $permission, ?User $user = null ): bool
+    public function checkPermission( string $permission, ?User $user = null ): bool
     {
-        ns()->restrict( $permission );
-
-        return true;
+        return $this->isPosActionAllowed( $permission, $user );
     }
 
-    public function requestAccess( $permission )
+    public function isPosActionAllowed( string $permission, ?User $user = null ): bool
+    {
+        $restrictedFeatures = ns()->option->get( 'ns_pos_action_permission_restricted_features', [] );
+        $restrictedFeatures = is_array( $restrictedFeatures ) ? $restrictedFeatures : [];
+
+        if ( ! in_array( $permission, $restrictedFeatures, true ) ) {
+            return true;
+        }
+
+        $userId = $user?->id ?? Auth::id();
+
+        return ns()->allowedTo( $permission ) || PermissionAccess::where( 'requester_id', $userId )
+            ->where( 'permission', $permission )
+            ->where( 'status', PermissionAccess::GRANTED )
+            ->where( 'expired_at', '>=', now() )
+            ->exists();
+    }
+
+    public function requestAccess( string $permission )
     {
         $approvedTemporaryPermission = PermissionAccess::where( 'requester_id', Auth::id() )
             ->where( 'permission', $permission )
@@ -387,7 +434,7 @@ class UsersService
             ->where( 'expired_at', '>=', now() )
             ->first();
 
-        if ( ! ns()->allowedTo( $permission ) && ! $approvedTemporaryPermission instanceof PermissionAccess ) {
+        if ( ! $this->isPosActionAllowed( $permission ) ) {
 
             /**
              * If we've explicitly enabled the action permission feature

@@ -9,6 +9,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Classes\Hook;
+use App\Crud\ProductAdjustmentCrud;
 use App\Crud\ProductCrud;
 use App\Crud\ProductHistoryCrud;
 use App\Crud\ProductUnitQuantitiesCrud;
@@ -20,12 +21,15 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Requests\ProductRequest;
 use App\Models\ProcurementProduct;
 use App\Models\Product;
+use App\Models\ProductAdjustment;
+use App\Models\ProductAdjustmentItem;
 use App\Models\ProductHistory;
 use App\Models\ProductUnitQuantity;
 use App\Models\ScaleRange;
 use App\Models\Unit;
 use App\Services\DateService;
 use App\Services\Helper;
+use App\Services\PosPinnedProductService;
 use App\Services\ProductService;
 use Exception;
 use Illuminate\Http\Request;
@@ -36,7 +40,8 @@ class ProductsController extends DashboardController
 {
     public function __construct(
         protected ProductService $productService,
-        protected DateService $dateService
+        protected DateService $dateService,
+        protected PosPinnedProductService $pinnedProductService
     ) {
         // ...
     }
@@ -107,6 +112,11 @@ class ProductsController extends DashboardController
     public function getProduts()
     {
         return $this->productService->getProducts();
+    }
+
+    public function getPinnedProducts(): array
+    {
+        return [ 'pinnedProducts' => $this->pinnedProductService->get() ];
     }
 
     /**
@@ -324,7 +334,7 @@ class ProductsController extends DashboardController
     {
         ns()->restrict( [ 'nexopos.update.products' ] );
 
-        return view::make( 'pages.dashboard.products.create', [
+        return View::make( 'pages.dashboard.products.create', [
             'title' => __( 'Edit a product' ),
             'description' => __( 'Makes modifications to a product' ),
             'submitUrl' => ns()->url( '/api/products/' . $product->id ),
@@ -342,7 +352,7 @@ class ProductsController extends DashboardController
     {
         ns()->restrict( [ 'nexopos.create.products' ] );
 
-        return view::make( 'pages.dashboard.products.create', [
+        return View::make( 'pages.dashboard.products.create', [
             'title' => __( 'Create a product' ),
             'description' => __( 'Add a new product on the system' ),
             'submitUrl' => ns()->url( '/api/products' ),
@@ -388,11 +398,41 @@ class ProductsController extends DashboardController
         ] );
     }
 
-    public function showStockAdjustment()
+    public function showStockAdjustment( Request $request )
     {
+        $adjustment = null;
+
+        if ( $request->query( 'adjustment_id' ) ) {
+            $adjustment = ProductAdjustment::with( 'items' )
+                ->where( 'id', $request->query( 'adjustment_id' ) )
+                ->where( 'status', ProductAdjustment::STATUS_DRAFT )
+                ->first();
+        }
+
         return View::make( 'pages.dashboard.products.stock-adjustment', [
             'title' => __( 'Stock Adjustment' ),
             'description' => __( 'Adjust stock of existing products.' ),
+            'adjustment' => $adjustment,
+            'actions' => Helper::kvToJsOptions( [
+                ProductHistory::ACTION_ADDED => __( 'Add' ),
+                ProductHistory::ACTION_DELETED => __( 'Delete' ),
+                ProductHistory::ACTION_DEFECTIVE => __( 'Defective' ),
+                ProductHistory::ACTION_LOST => __( 'Lost' ),
+                ProductHistory::ACTION_SET => __( 'Set' ),
+            ] ),
+        ] );
+    }
+
+    public function showStockAdjustmentEdit( ProductAdjustment $history )
+    {
+        if ( $history->status !== ProductAdjustment::STATUS_DRAFT ) {
+            return redirect()->route( ns()->routeName( 'ns.dashboard.products.adjustment-history' ) );
+        }
+
+        return View::make( 'pages.dashboard.products.stock-adjustment', [
+            'title' => __( 'Edit Stock Adjustment' ),
+            'description' => __( 'Update this draft stock adjustment.' ),
+            'adjustment' => $history->load( 'items' ),
             'actions' => Helper::kvToJsOptions( [
                 ProductHistory::ACTION_ADDED => __( 'Add' ),
                 ProductHistory::ACTION_DELETED => __( 'Delete' ),
@@ -521,6 +561,22 @@ class ProductsController extends DashboardController
             ] );
         }
 
+        /**
+         * Record the batch so it appears in the adjustment history.
+         */
+        $adjustment = ProductAdjustment::create( [
+            'author_id' => auth()->id(),
+            'title' => $request->input( 'title', '' ),
+            'status' => ProductAdjustment::STATUS_PERFORMED,
+            'description' => $request->input( 'description', '' ),
+        ] );
+
+        foreach ( $this->productService->buildAdjustmentItems( $request->input( 'products' ) ) as $item ) {
+            ProductAdjustmentItem::create( array_merge( $item, [
+                'adjustment_id' => $adjustment->id,
+            ] ) );
+        }
+
         return [
             'status' => 'success',
             'message' => __( 'The stock has been adjustment successfully.' ),
@@ -528,10 +584,11 @@ class ProductsController extends DashboardController
         ];
     }
 
-    public function searchUsingArgument( $reference )
+    public function searchUsingArgument( string $reference )
     {
         // Check if this is a scale barcode
         $scaleData = null;
+
         if ( $this->productService->isScaleBarcode( $reference ) ) {
             try {
                 $scaleData = $this->productService->parseScaleBarcode( $reference );
@@ -584,6 +641,7 @@ class ProductsController extends DashboardController
              * and the sales are disallowed.
              */
             if (
+                $procurementProduct->expiration_date !== null &&
                 $this->dateService->copy()->greaterThan( $procurementProduct->expiration_date ) &&
                 $product->expires &&
                 $product->on_expiration === Product::EXPIRES_PREVENT_SALES ) {
@@ -596,6 +654,10 @@ class ProductsController extends DashboardController
              * Will also be helpful to track how products are sold.
              */
             $product->procurement_product_id = $procurementProduct->id;
+            $product->selectedUnitQuantity = ProductUnitQuantity::where( 'product_id', $procurementProduct->product_id )
+                ->where( 'unit_id', $procurementProduct->unit_id )
+                ->first();
+
         } elseif ( $productUnitQuantity instanceof ProductUnitQuantity ) {
             /**
              * if a product unit quantity is loaded. Then we make sure to return the parent
@@ -619,6 +681,8 @@ class ProductsController extends DashboardController
         if ( $product instanceof Product ) {
             return [
                 'type' => 'product',
+                'unit' => $product?->selectedUnitQuantity?->unit,
+                'unitQuantity' => $product?->selectedUnitQuantity,
                 'product' => $product,
             ];
         }
@@ -628,7 +692,7 @@ class ProductsController extends DashboardController
 
     public function printLabels()
     {
-        return view::make( 'pages.dashboard.products.print-labels', [
+        return View::make( 'pages.dashboard.products.print-labels', [
             'title' => __( 'Print Labels' ),
             'description' => __( 'Customize and print products labels.' ),
         ] );
@@ -678,6 +742,103 @@ class ProductsController extends DashboardController
         return [
             'status' => 'success',
             'message' => __( 'Products have been successfully reordered.' ),
+        ];
+    }
+
+    public function listAdjustmentHistory()
+    {
+        return ProductAdjustmentCrud::table();
+    }
+
+    public function saveDraftAdjustment( Request $request )
+    {
+        ns()->restrict( [ 'nexopos.make.products-adjustments' ] );
+
+        $validator = Validator::make( $request->all(), [
+            'products' => 'required|array',
+        ] );
+
+        if ( $validator->fails() ) {
+            throw new Exception( __( 'Unable to proceed as the request is not valid.' ) );
+        }
+
+        $adjustment = $this->productService->createAdjustmentDraft(
+            $request->input( 'products' ),
+            $request->input( 'title', '' ),
+            $request->input( 'description', '' )
+        );
+
+        return [
+            'status' => 'success',
+            'message' => __( 'The draft has been saved successfully.' ),
+            'data' => [ 'adjustment' => $adjustment ],
+        ];
+    }
+
+    public function getAdjustment( ProductAdjustment $adjustment )
+    {
+        ns()->restrict( [ 'nexopos.make.products-adjustments' ] );
+
+        return $adjustment->load( 'items' );
+    }
+
+    public function updateDraftAdjustment( ProductAdjustment $adjustment, Request $request )
+    {
+        ns()->restrict( [ 'nexopos.make.products-adjustments' ] );
+
+        if ( $adjustment->status !== ProductAdjustment::STATUS_DRAFT ) {
+            throw new NotAllowedException( __( 'Only draft adjustments can be updated.' ) );
+        }
+
+        $validator = Validator::make( $request->all(), [
+            'products' => 'required|array',
+        ] );
+
+        if ( $validator->fails() ) {
+            throw new Exception( __( 'Unable to proceed as the request is not valid.' ) );
+        }
+
+        $adjustment = $this->productService->updateAdjustmentDraft(
+            $adjustment,
+            $request->input( 'products' ),
+            $request->input( 'title', $adjustment->title ?? '' ),
+            $request->input( 'description', $adjustment->description ?? '' )
+        );
+
+        return [
+            'status' => 'success',
+            'message' => __( 'The draft has been updated successfully.' ),
+            'data' => [ 'adjustment' => $adjustment ],
+        ];
+    }
+
+    public function executeAdjustment( ProductAdjustment $adjustment )
+    {
+        ns()->restrict( [ 'nexopos.make.products-adjustments' ] );
+
+        $results = $this->productService->executeAdjustmentDraft( $adjustment );
+
+        return [
+            'status' => 'success',
+            'message' => __( 'The stock adjustment has been performed successfully.' ),
+            'data' => $results,
+        ];
+    }
+
+    public function deleteDraftAdjustment( ProductAdjustment $adjustment )
+    {
+        ns()->restrict( [ 'nexopos.make.products-adjustments' ] );
+
+        if ( $adjustment->status !== ProductAdjustment::STATUS_DRAFT ) {
+            throw new NotAllowedException( __( 'Only draft adjustments can be deleted.' ) );
+        }
+
+        $adjustment->items()->delete();
+        $adjustment->delete();
+
+        return [
+            'status' => 'success',
+            'message' => __( 'The draft adjustment has been deleted.' ),
         ];
     }
 }

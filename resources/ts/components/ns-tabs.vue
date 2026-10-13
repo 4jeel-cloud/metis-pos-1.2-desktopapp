@@ -3,14 +3,15 @@
         <div class="header ml-4 flex justify-between" style="margin-bottom: -1px;">
             <div class="flex flex-auto">
                 <div 
+                    :id="'tab-' + identifier"
                     :key="tab.identifier" 
                     v-for="( tab , identifier ) of childrens" 
-                    @click="toggle( tab )" 
+                    @click="selectTab( tab )" 
                     :class="active === tab.identifier ? 'border-b-0 active z-10' : 'inactive'" 
                     class="tab rounded-tl rounded-tr border px-2 py-1 cursor-pointer flex items-center" 
                     style="margin-right: -1px">
                         <span>{{ tab.label }}</span>
-                        <div v-if="tab.closable" @click="$emit( 'close', tab )" class="ns-inset-button border border-box-edge text-xs hover:border-error-tertiary error rounded-full h-5 w-5 flex items-center justify-center ml-1"><i class="las la-times"></i></div>
+                        <div v-if="tab.closable" @click.stop="$emit( 'close', tab )" class="ns-inset-button border border-box-edge text-xs hover:border-error-tertiary error rounded-full h-5 w-5 flex items-center justify-center ml-1"><i class="las la-times"></i></div>
                 </div>
             </div>
             <div>
@@ -27,7 +28,7 @@ export default {
     data() {
         return {
             childrens: [],
-            tabState: new Subject,
+            tabState: new Subject(),
         }
     },
     props: [ 'active' ],
@@ -42,30 +43,26 @@ export default {
     },
     beforeUnmount() {
         this.tabState.unsubscribe();
-    },
+    },  
     watch: {
-        active( newValue, oldValue ) {
-            this.childrens.forEach( children => {
-                children.active     =   children.identifier === newValue ? true : false;
-
-                if ( children.active ) {
-                    this.toggle( children );
-                }
-            });
+        active( newValue ) {
+            this.buildChildrens( newValue )
         }
-    },    
+    },
     mounted() {
         this.buildChildrens( this.active ); 
     },
     methods: {
         __,
-        toggle( tab ) {
-            this.$emit( 'active', tab.identifier );
+        selectTab( tab ) {
             this.$emit( 'changeTab', tab.identifier );
+            this.activateTab( tab );
+        },
+        activateTab( tab ) {
             this.tabState.next( tab );
         },
         buildChildrens( active ) {
-            this.childrens  =   Array.from( this.$el.querySelectorAll( '.ns-tab-item' ) ).map( element => {
+            this.childrens  =   Array.from( this.$el.querySelectorAll( ':scope > .ns-tab-item' ) ).map( element => {
                 const identifier =  element.getAttribute( 'identifier' ) || undefined;
                 
                 let visible     =   true;
@@ -98,10 +95,10 @@ export default {
 
             this.childrens.forEach( children => {
                 if ( children.active ) {
-                    this.toggle( children );
+                    this.activateTab( children );
                 }
             });
-        }
+        }  
     },
 }
 </script>

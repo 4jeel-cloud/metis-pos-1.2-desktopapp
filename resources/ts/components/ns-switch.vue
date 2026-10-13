@@ -48,6 +48,10 @@ export default {
     methods: {
         __,
         setSelected( option ) {
+            if ( this.field.disabled || option.disabled ) {
+                return;
+            }
+
             this.field.value    =   option.value;
             this._options.forEach( option => option.selected = false );
             option.selected     =   true;
@@ -61,7 +65,7 @@ export default {
 <template>
     <div class="ns-switch" :class="(hasError ? 'has-error' : 'is-pristine') + ' ' + ( field.label ? 'mb-2' : '' )">
         <label v-if="field.label" :for="field.name"  class="block leading-5 font-medium"><slot></slot></label>
-            <div :class="sizeMapping[ size ] || 'w-52'" class="rounded-lg flex overflow-hidden shadow my-1">
+            <div :name="field.name" :class="sizeMapping[ size ] || 'w-52'" class="rounded-lg flex overflow-hidden shadow my-1">
                 <button 
                     :disabled="option.disabled" 
                     :key="key"

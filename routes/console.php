@@ -3,13 +3,13 @@
 use App\Jobs\CheckForUpdatesJob;
 use App\Jobs\ClearHoldOrdersJob;
 use App\Jobs\ClearModuleTempJob;
+use App\Jobs\DeleteExpiredOptionsJob;
 use App\Jobs\DetectLowStockProductsJob;
 use App\Jobs\DetectScheduledTransactionsJob;
 use App\Jobs\EnsureCombinedProductHistoryExistsJob;
 use App\Jobs\PurgeOrderStorageJob;
 use App\Jobs\StockProcurementJob;
 use App\Jobs\TrackLaidAwayOrdersJob;
-use App\Jobs\TriggerRecurringTransactionJob;
 use App\Models\Transaction;
 use App\Services\Helper;
 use Illuminate\Support\Facades\Artisan;
@@ -64,12 +64,12 @@ if ( Helper::installed() ) {
      * Will check procurement awaiting automatic
      * stocking to update their status.
      */
-    Schedule::job( new StockProcurementJob )->daily( '00:05' );
+    Schedule::job( new StockProcurementJob )->dailyAt( '00:05' );
 
     /**
      * Will purge stoarge orders daily.
      */
-    Schedule::job( new PurgeOrderStorageJob )->daily( '15:00' );
+    Schedule::job( new PurgeOrderStorageJob )->dailyAt( '15:00' );
 
     /**
      * Will clear hold orders that has expired.
@@ -100,53 +100,15 @@ if ( Helper::installed() ) {
      */
     Schedule::job( new ClearModuleTempJob )->weekly();
 
+    if ( ! in_array( env( 'QUEUE_CONNECTION' ), [ 'sync' ] ) ) {
+        Schedule::job( new DeleteExpiredOptionsJob )->daily()->withoutOverlapping();
+    }
+
     /**
      * Will check daily if a new NexoPOS version is available
      * on GitHub and store the result as an option.
      */
     Schedule::job( new CheckForUpdatesJob )->dailyAt( '08:00' );
 
-    Transaction::recurring()->where( 'active', true )->where( 'occurrence', Transaction::OCCURRENCE_EVERY_X_DAYS )->get()->each( function ( $transaction ) {
-        Schedule::job( new TriggerRecurringTransactionJob( $transaction ) )->cron( '0 0 */' . $transaction->occurrence_value . ' * *' );
-    } );
-
-    Transaction::recurring()->where( 'active', true )->where( 'occurrence', Transaction::OCCURRENCE_EVERY_X_MINUTES )->get()->each( function ( $transaction ) {
-        Schedule::job( new TriggerRecurringTransactionJob( $transaction ) )->cron( '*/' . $transaction->occurrence_value . ' * * * *' );
-    } );
-
-    Transaction::recurring()->where( 'active', true )->where( 'occurrence', Transaction::OCCURRENCE_EVERY_X_HOURS )->get()->each( function ( $transaction ) {
-        Schedule::job( new TriggerRecurringTransactionJob( $transaction ) )->cron( '0 */' . $transaction->occurrence_value . ' * * *' );
-    } );
-
-    Transaction::recurring()->where( 'active', true )->where( 'occurrence', Transaction::OCCURRENCE_START_OF_MONTH )->get()->each( function ( $transaction ) {
-        Schedule::job( new TriggerRecurringTransactionJob( $transaction ) )->monthlyOn( $transaction->occurrence_value, '00:01' );
-    } );
-
-    Transaction::recurring()->where( 'active', true )->where( 'occurrence', Transaction::OCCURRENCE_END_OF_MONTH )->get()->each( function ( $transaction ) {
-        Schedule::job( new TriggerRecurringTransactionJob( $transaction ) )->monthlyOn( now()->copy()->endOfMonth()->subDays( $transaction->occurrence_value )->day, '00:01' );
-    } );
-
-    Transaction::recurring()->where( 'active', true )->where( 'occurrence', Transaction::OCCURRENCE_X_BEFORE_MONTH_ENDS )->get()->each( function ( $transaction ) {
-        Schedule::call( function () use ( $transaction ) {
-            if ( now()->copy()->addDays( $transaction->occurrence_value )->isLastOfMonth() ) {
-                dispatch( new TriggerRecurringTransactionJob( $transaction ) );
-            }
-        } )->daily();
-    } );
-
-    Transaction::recurring()->where( 'active', true )->where( 'occurrence', Transaction::OCCURRENCE_X_AFTER_MONTH_STARTS )->get()->each( function ( $transaction ) {
-        Schedule::call( function () use ( $transaction ) {
-            if ( now()->copy()->addDays( $transaction->occurrence_value )->isFirstOfMonth() ) {
-                dispatch( new TriggerRecurringTransactionJob( $transaction ) );
-            }
-        } )->daily();
-    } );
-
-    Transaction::recurring()->where( 'active', true )->where( 'occurrence', Transaction::OCCURRENCE_SPECIFIC_DAY )->get()->each( function ( $transaction ) {
-        Schedule::job( new TriggerRecurringTransactionJob( $transaction ) )->monthlyOn( $transaction->occurrence_value, '00:01' );
-    } );
-
-    Transaction::recurring()->where( 'active', true )->where( 'occurrence', Transaction::OCCURRENCE_MIDDLE_OF_MONTH )->get()->each( function ( $transaction ) {
-        Schedule::job( new TriggerRecurringTransactionJob( $transaction ) )->monthlyOn( 15, '00:01' );
-    } );
+    include_once __DIR__ . '/console/transactions.php';
 }

@@ -73,11 +73,16 @@ export default {
                 nsHttpClient.get( `/api/orders/${orderId}/products` ),
                 nsHttpClient.get( `/api/orders/${orderId}/payments` ),
             ])
-                .subscribe( result => {
-                    this.orderDetailLoaded  =   true;
-                    this.order              =   result[0];
-                    this.products           =   result[1];
-                    this.payments           =   result[2];
+                .subscribe({
+                    next: result => {
+                        this.orderDetailLoaded  =   true;
+                        this.order              =   result[0];
+                        this.products           =   result[1];
+                        this.payments           =   result[2];
+                    },
+                    error: error => {
+                        nsSnackBar.error( error?.message || __( 'An unexpected error occurred.' ) );
+                    }
                 });
         },
         deleteOrder() {
@@ -146,6 +151,11 @@ export default {
         this.rawOrder   =   this.popup.params.order;
         this.options    =   systemOptions;
         this.urls       =   systemUrls;
+        // Optional: open a specific tab (e.g. payments from calendar ops).
+        const requestedTab = this.popup.params.active || this.popup.params.tab;
+        if ( typeof requestedTab === 'string' && requestedTab.length > 0 ) {
+            this.active = requestedTab;
+        }
         this.loadOrderDetails( this.rawOrder.id );
         this.popupCloser();
     }
@@ -162,7 +172,7 @@ export default {
             </div>
         </div>
         <div class="p-2 ns-box-body overflow-hidden flex flex-auto">
-            <ns-tabs v-if="order.id" :active="active" @active="setActive( $event )">
+            <ns-tabs v-if="order.id" :active="active" @changeTab="setActive( $event )">
                 <!-- Summary -->
                 <ns-tabs-item :label="__( 'Details' )" identifier="details" class="overflow-y-auto">
                     <ns-order-details v-if="order" :order="order"></ns-order-details>

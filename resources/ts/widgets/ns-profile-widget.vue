@@ -1,9 +1,12 @@
 <template>
     <div id="ns-profile" class="flex ns-box flex-auto flex-col shadow rounded-lg overflow-hidden">
-        <div class="flex-auto">
+        <div class="flex-auto flex flex-col">
             <div class="head text-center ns-box-header border-b w-full flex justify-between items-center p-2">
                 <h5>{{ __( 'Profile' ) }}</h5>
                 <div class="flex -mx-1">
+                    <div class="px-1">
+                        <ns-widget-layout-selector :widget="widget"></ns-widget-layout-selector>
+                    </div>
                     <div class="px-1">
                         <ns-icon-button class="widget-handle" className="la-expand-arrows-alt"></ns-icon-button>
                     </div>
@@ -15,8 +18,8 @@
                     </div>
                 </div>
             </div>
-            <div class="body">
-                <div class="h-40 flex items-center justify-center">
+            <div class="body flex flex-col flex-auto">
+                <div class="flex-auto flex items-center justify-center">
                     <div class="rounded-full border-4 border-secondary bg-primary flex items-center justify-center shadow-lg" style="width:8rem;height:8rem;">
                         <span class="text-white font-bold text-4xl uppercase select-none">{{ (user.username || 'U').charAt(0) }}</span>
                     </div>
@@ -40,6 +43,7 @@ import { __ } from '~/libraries/lang';
 export default {
     name: 'ns-profile-widget',
     components: {},
+    props: [ 'widget' ],
     data() {
         return {
             svg: '',
@@ -59,8 +63,13 @@ export default {
         __,
         nsCurrency,
         loadUserProfileWidget( refresh ) {
-            nsHttpClient.get( `/api/reports/cashier-report${refresh ? '?refresh=true' : ''}` ).subscribe( result => {
-                this.profileDetails     =   result;
+            nsHttpClient.get( `/api/reports/cashier-report${refresh ? '?refresh=true' : ''}` ).subscribe({
+                next: result => {
+                    this.profileDetails     =   result;
+                },
+                error: error => {
+                    nsSnackBar.error( error?.message || __( 'An unexpected error occurred.' ) );
+                }
             })
         }
     }

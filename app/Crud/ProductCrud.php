@@ -5,10 +5,10 @@ namespace App\Crud;
 use App\BulkEditor\ProductCrudBulkConfig;
 use App\Casts\ProductTypeCast;
 use App\Classes\CrudForm;
+use App\Classes\CrudTable;
 use App\Classes\FormInput;
 use App\Exceptions\NotAllowedException;
 use App\Models\Product;
-use App\Models\ProductCategory;
 use App\Models\ProductUnitQuantity;
 use App\Models\TaxGroup;
 use App\Models\UnitGroup;
@@ -214,6 +214,14 @@ class ProductCrud extends CrudService
                 description: __( 'Define the regular selling price.' ),
                 validation: 'required',
             ),
+            FormInput::text(
+                errors: [],
+                label: __( 'Barcode' ),
+                name: 'barcode',
+                value: 0,
+                description: __( 'Define the unit barcode value.' ),
+                validation: '',
+            ),
             FormInput::number(
                 errors: [],
                 label: __( 'Wholesale Price' ),
@@ -300,13 +308,21 @@ class ProductCrud extends CrudService
                     'tabs' => [
                         'identification' => [
                             'label' => __( 'Identification' ),
+                            'identifier' => 'identification',
                             'fields' => [
                                 [
                                     'type' => 'search-select',
                                     'component' => 'nsCrudForm',
                                     'props' => ProductCategoryCrud::getFormConfig(),
                                     'description' => __( 'Select to which category the item is assigned.' ),
-                                    'options' => Helper::toJsOptions( ProductCategory::get(), [ 'id', 'name' ] ),
+                                    'options' => [
+                                        'search' => FormInput::searchSelectOptions(
+                                            ProductCategoryCrud::IDENTIFIER,
+                                            limit: 10,
+                                            moreLabel: __( '+{count} more searchable categories. Type to search.' ),
+                                            minLength: 1,
+                                        ),
+                                    ],
                                     'name' => 'category_id',
                                     'label' => __( 'Category' ),
                                     'validation' => 'required',
@@ -341,7 +357,7 @@ class ProductCrud extends CrudService
                                     'name' => 'barcode_type',
                                     'label' => __( 'Barcode Type' ),
                                     'validation' => 'required',
-                                    'value' => $entry->barcode_type ?? 'code128',
+                                    'value' => $entry->barcode_type ?? ns()->option->get( 'ns_pos_default_barcode_type', 'code128' ),
                                 ], [
                                     'type' => 'select',
                                     'options' => Helper::kvToJsOptions( Hook::filter( 'ns-products-type', [
@@ -396,6 +412,7 @@ class ProductCrud extends CrudService
                         ],
                         'groups' => [
                             'label' => __( 'Groups' ),
+                            'identifier' => 'groups',
                             'fields' => [
                                 [
                                     'type' => 'hidden',
@@ -426,6 +443,7 @@ class ProductCrud extends CrudService
                         ],
                         'units' => [
                             'label' => __( 'Units' ),
+                            'identifier' => 'units',
                             'fields' => [
                                 [
                                     'type' => 'search-select',
@@ -437,6 +455,21 @@ class ProductCrud extends CrudService
                                     'props' => UnitGroupCrud::getFormConfig(),
                                     'component' => 'nsCrudForm',
                                     'value' => $entry->unit_group ?? ( ! $groups->isEmpty() ? $groups->first()->id : '' ),
+                                ], [
+                                    'type' => 'search-select',
+                                    'options' => Helper::toJsOptions( $units, [ 'id', 'name' ] ),
+                                    'name' => 'default_purchase_unit_id',
+                                    'description' => __( 'Select the unit used for scheduled procurement lines.' ),
+                                    'label' => __( 'Default Purchase Unit' ),
+                                    'validation' => 'nullable|integer|exists:nexopos_units,id',
+                                    'value' => $entry->default_purchase_unit_id ?? '',
+                                ], [
+                                    'type' => 'number',
+                                    'name' => 'scheduled_reorder_quantity',
+                                    'description' => __( 'Set the exact quantity to order when a scheduled low-stock check qualifies this product.' ),
+                                    'label' => __( 'Scheduled Reorder Quantity' ),
+                                    'validation' => 'nullable|numeric|gt:0',
+                                    'value' => $entry->scheduled_reorder_quantity ?? '',
                                 ], [
                                     'type' => 'switch',
                                     'description' => __( 'The product won\'t be visible on the grid and fetched only using the barcode reader or associated barcode.' ),
@@ -511,6 +544,7 @@ class ProductCrud extends CrudService
                         ],
                         'expiracy' => [
                             'label' => __( 'Expiry' ),
+                            'identifier' => 'expiry',
                             'fields' => [
                                 [
                                     'type' => 'switch',
@@ -538,14 +572,17 @@ class ProductCrud extends CrudService
                         ],
                         'taxes' => [
                             'label' => __( 'Taxes' ),
+                            'identifier' => 'taxes',
                             'fields' => [
                                 [
-                                    'type' => 'select',
+                                    'type' => 'search-select',
                                     'options' => Helper::toJsOptions( TaxGroup::get(), [ 'id', 'name' ] ),
                                     'description' => __( 'Select the tax group that applies to the product/variation.' ),
                                     'name' => 'tax_group_id',
                                     'label' => __( 'Tax Group' ),
                                     'value' => $entry->tax_group_id ?? '',
+                                    'props' => TaxesGroupCrud::getFormConfig(),
+                                    'component' => 'nsCrudForm',
                                 ], [
                                     'type' => 'select',
                                     'options' => Helper::kvToJsOptions( [
@@ -561,6 +598,7 @@ class ProductCrud extends CrudService
                         ],
                         'images' => [
                             'label' => __( 'Images' ),
+                            'identifier' => 'images',
                             'fields' => [
                                 [
                                     'type' => 'media',
@@ -708,47 +746,42 @@ class ProductCrud extends CrudService
      */
     public function getColumns(): array
     {
-        return [
-            'name' => [
-                'label' => __( 'Name' ),
-                '$direction' => '',
-                '$sort' => false,
-                'width' => '300px',
-            ],
-            'type' => [
-                'label' => __( 'Type' ),
-                '$direction' => '',
-                'width' => '150px',
-                '$sort' => false,
-            ],
-            'sku' => [
-                'label' => __( 'Sku' ),
-                '$direction' => '',
-                '$sort' => false,
-            ],
-            'category_name' => [
-                'label' => __( 'Category' ),
-                'width' => '150px',
-                '$direction' => '',
-                '$sort' => false,
-            ],
-            'status' => [
-                'label' => __( 'Status' ),
-                '$direction' => '',
-                '$sort' => false,
-            ],
-            'user_username' => [
-                'label' => __( 'Author' ),
-                '$direction' => '',
-                '$sort' => false,
-            ],
-            'created_at' => [
-                'label' => __( 'Date' ),
-                'width' => '150px',
-                '$direction' => '',
-                '$sort' => false,
-            ],
-        ];
+        return CrudTable::columns(
+            CrudTable::column(
+                label: __( 'Name' ),
+                identifier: 'name',
+            ),
+            CrudTable::column(
+                label: __( 'Type' ),
+                identifier: 'type',
+                width: '150px',
+            ),
+            CrudTable::column(
+                label: __( 'Sku' ),
+                identifier: 'sku',
+                width: '150px',
+            ),
+            CrudTable::column(
+                label: __( 'Category' ),
+                identifier: 'category_name',
+                width: '150px',
+            ),
+            CrudTable::column(
+                label: __( 'Status' ),
+                identifier: 'status',
+                width: '100px',
+            ),
+            CrudTable::column(
+                label: __( 'Author' ),
+                identifier: 'user_username',
+                width: '150px',
+            ),
+            CrudTable::column(
+                label: __( 'Date' ),
+                identifier: 'created_at',
+                width: '150px',
+            ),
+        );
     }
 
     /**

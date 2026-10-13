@@ -10,13 +10,16 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Crud\GlobalProductHistoryCrud;
 use App\Crud\ProductCategoryCrud;
+use App\Events\ApplyHideCategoriesEvent;
 use App\Exceptions\NotFoundException;
 use App\Http\Controllers\DashboardController;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Services\DateService;
+use App\Services\PosPinnedProductService;
 use App\Services\ProductCategoryService;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -24,7 +27,8 @@ class CategoryController extends DashboardController
 {
     public function __construct(
         protected ProductCategoryService $categoryService,
-        protected DateService $dateService
+        protected DateService $dateService,
+        protected PosPinnedProductService $pinnedProductService
     ) {
         // ...
     }
@@ -83,7 +87,7 @@ class CategoryController extends DashboardController
      * create a category using the provided
      * form data
      *
-     * @param request
+     * @param Request
      * @return json
      */
     public function post( Request $request ) // must be a specific form request with a validation
@@ -200,8 +204,8 @@ class CategoryController extends DashboardController
     /**
      * get a specific category variations
      *
-     * @param number category id
-     * @return json
+     * @param  int                           $id
+     * @return Collection|ProductVariation[]
      */
     public function getCategoriesVariations( $id )
     {
@@ -313,7 +317,7 @@ class CategoryController extends DashboardController
                 'categories' => $categoriesQuery->get(),
                 'previousCategory' => ProductCategory::find( $category->parent_id ) ?? null,
                 'currentCategory' => $category,
-                'pinnedProducts' => $this->getPinnedProducts(),
+                'pinnedProducts' => $this->pinnedProductService->get(),
             ];
         }
 
@@ -338,34 +342,8 @@ class CategoryController extends DashboardController
             'previousCategory' => false,
             'currentCategory' => false,
             'categories' => $categoriesQuery->get(),
-            'pinnedProducts' => $this->getPinnedProducts(),
+            'pinnedProducts' => $this->pinnedProductService->get(),
         ];
-    }
-
-    /**
-     * Get pinned products for POS display
-     *
-     * @return Collection
-     */
-    private function getPinnedProducts()
-    {
-        return Product::where( 'pinned', true )
-            ->with( 'galleries', 'tax_group.taxes' )
-            ->onSale()
-            ->where( function ( $query ) {
-                $this->applyHideProducts( $query );
-            } )
-            ->trackingDisabled()
-            ->get()
-            ->map( function ( $product ) {
-                if ( $product->unit_quantities()->where( 'visible', true )->count() === 1 ) {
-                    $product->load( [ 'unit_quantities' => function ( $query ) {
-                        $query->where( 'visible', true )->with( 'unit' );
-                    } ] );
-                }
-
-                return $product;
-            } );
     }
 
     private function applyHideProducts( $query )
@@ -385,7 +363,7 @@ class CategoryController extends DashboardController
         }
     }
 
-    private function applyHideCategories( $query )
+    private function applyHideCategories( Builder $query )
     {
         $exhaustedHidden = ns()->option->get( 'ns_pos_hide_empty_categories' );
 
@@ -402,6 +380,12 @@ class CategoryController extends DashboardController
                 } );
             } );
         }
+
+        /**
+         * We need to allow modules to filter the categories displayed on the POS.
+         * This is useful for modules that want to hide certain categories based on specific conditions or criteria.
+         */
+        ApplyHideCategoriesEvent::dispatch( $query );
     }
 
     /**

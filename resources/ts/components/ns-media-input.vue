@@ -1,7 +1,7 @@
 <template>
     <div class="flex flex-col mb-2 flex-auto ns-media" :class="hasError ? 'has-error' : 'is-pristine'">
         <label :for="field.name" class="block leading-5 font-medium"><slot></slot></label>
-        <div class="mt-1 relative border rounded-md focus:shadow-sm">
+        <div :name="field.name" class="mt-1 relative border rounded-md focus:shadow-sm">
             <div v-if="leading" class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <span class="text-fontcolor sm:text-sm sm:leading-5">
                 {{ leading }}
@@ -43,7 +43,10 @@
 
 import { Popup } from '~/libraries/popup';
 import { default as nsMedia } from "~/pages/dashboard/ns-media.vue";
+import { default as nsMediaLibrary } from "~/pages/dashboard/ns-media-library.vue";
 import { fileIcons } from '~/shared/file-icons';
+
+declare const ns;
 
 export default {
     computed: {
@@ -84,7 +87,21 @@ export default {
 
         toggleMedia() {
             const promise   =   new Promise( ( resolve, reject ) => {
-                Popup.show( nsMedia, { resolve, reject, ...( this.field.data || {} )});
+                let currentLibrary = nsMedia;
+
+                /**
+                 * This will conditionnaly display the correct media library based on the configuration of the application.
+                 * The configuration is stored in the window.ns.medias object, which is set in the header resources/views/layout/_header-script.blade.php
+                 */
+                if ( ns && ns.medias ) {
+                    if (ns.medias.mediaLayout === 'modern' ) {
+                        currentLibrary = nsMediaLibrary;
+                    } else {
+                        currentLibrary = nsMedia;
+                    }
+                }
+
+                Popup.show( currentLibrary, { resolve, reject, ...( this.field.data || {} )});
             });
 
             promise.then( ( action: { event: string, value: any[] } ) => {

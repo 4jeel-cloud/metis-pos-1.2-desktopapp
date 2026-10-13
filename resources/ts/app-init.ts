@@ -13,9 +13,9 @@ import {
 
 import { NsHotPress }       from './libraries/ns-hotpress';
 import VueHtmlToPaper from './libraries/html-printer';
+import nsCreateCoupons from './pages/dashboard/create-coupons.vue';
 
 const nsRewardsSystem               =   defineAsyncComponent( () => import( '~/pages/dashboard/rewards-system.vue' ) );
-const nsCreateCoupons               =   defineAsyncComponent( () => import( './pages/dashboard/create-coupons.vue' ) );
 const nsSettings                    =   defineAsyncComponent( () => import( './pages/dashboard/ns-settings.vue' ) );
 const nsReset                       =   defineAsyncComponent( () => import( './pages/dashboard/reset.vue' ) );
 const nsModules                     =   defineAsyncComponent( () => import( './pages/dashboard/modules.vue' ) );
@@ -25,6 +25,7 @@ const nsManageProducts              =   defineAsyncComponent( () => import( './p
 const nsProcurementInvoice          =   defineAsyncComponent( () => import( './pages/dashboard/procurements/ns-procurement-invoice.vue' ) );
 const nsNotifications               =   defineAsyncComponent( () => import( './pages/dashboard/ns-notifications.vue' ) );
 const nsMedia                       =   defineAsyncComponent( () => import( './pages/dashboard/ns-media.vue' ) );
+const nsMediaLibrary                =   defineAsyncComponent( () => import( './pages/dashboard/ns-media-library.vue' ) );
 const nsTransaction                 =   defineAsyncComponent( () => import( './pages/dashboard/transactions/ns-transaction.vue' ) );
 const nsDashboard                   =   defineAsyncComponent( () => import( './pages/dashboard/home/ns-dashboard.vue' ) );
 const nsLowStockReport              =   defineAsyncComponent( () => import( './pages/dashboard/reports/ns-low-stock-report.vue' ) );
@@ -42,6 +43,9 @@ const nsOrderInvoice                =   defineAsyncComponent( () => import( './p
 const nsPrintLabel                  =   defineAsyncComponent( () => import( './pages/dashboard/products/ns-print-label.vue' ) );
 const nsTransactionsRules           =   defineAsyncComponent( () => import( './pages/dashboard/transactions/ns-transactions-rules.vue' ) );
 const nsScaleSettingsPreview        =   defineAsyncComponent( () => import( './components/ns-scale-settings-preview.vue' ) );
+const nsWirelessBarcodeSettingsTab  =   defineAsyncComponent( () => import( './pages/dashboard/settings/ns-wireless-barcode-tab.vue' ) );
+const nsMarketplace                 =   defineAsyncComponent( () => import( './pages/dashboard/modules/ns-marketplace.vue' ) );
+
 
 declare const window;
 declare let nsExtraComponents;   
@@ -51,6 +55,7 @@ const nsState               =   window[ 'nsState' ];
 const nsScreen              =   window[ 'nsScreen' ]; 
 
 nsExtraComponents.nsToken       =   defineAsyncComponent( () => import( './pages/dashboard/profile/ns-token.vue' ) );
+nsExtraComponents.nsGuides      =   defineAsyncComponent( () => import( './pages/dashboard/profile/ns-guides.vue' ) );
 
 window.VueHtmlToPaper   =   VueHtmlToPaper;
 window.nsHotPress   =   new NsHotPress;
@@ -71,6 +76,7 @@ const allComponents    =   Object.assign({
     nsPrintLabel,
 
     nsNotifications,
+    nsMediaLibrary,
     nsSaleReport,
     nsSoldStockReport,
     nsProfitReport,
@@ -86,6 +92,8 @@ const allComponents    =   Object.assign({
     nsStockAdjustment,
     nsOrderInvoice,
     nsScaleSettingsPreview,
+    NsWireLessBarcodeSettingsTab: nsWirelessBarcodeSettingsTab,
+    nsMarketplace,
     ...baseComponents
 }, nsExtraComponents );
 
@@ -180,8 +188,16 @@ for( let name in allComponents ) {
  * let's add the library
  * to the body dashboard content
  */
-window.nsDashboardContent.use( VueHtmlToPaper, {
-    styles: Object.values( window.ns.cssFiles )
+const appStyles = Object.values( window.ns.cssFiles ).filter( ( file ) => {
+    return file.includes( '/app' ) || file.includes( '/fonts' ) || file.includes( '/print' );
 });
+
+console.log({ appStyles })
+
+window.nsDashboardContent.use( VueHtmlToPaper, {
+    styles: appStyles
+});
+
+
 
 window.nsComponents          =   Object.assign( allComponents, baseComponents );

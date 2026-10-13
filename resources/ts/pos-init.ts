@@ -29,6 +29,12 @@ import { nsAlertPopup, nsConfirmPopup, nsPromptPopup } from "./components/compon
 import nsPosShippingPopup from "./popups/ns-pos-shipping-popup.vue";
 import nsLayawayPopup from "./popups/ns-pos-layaway-popup.vue";
 import delivery from "./pages/dashboard/pos/queues/order-type/delivery";
+import axios from "axios";
+import { io, Socket } from "socket.io-client";
+import { ReactiveObject } from "./libraries/reactive-objects";
+import { cartSatisfiesCouponRestrictions } from "./libraries/coupon-eligibility";
+import { resolvePosSection } from "./libraries/pos-layout-state";
+import { setPosSetting, unsetPosSetting } from "./libraries/pos-settings-state";
 
 /**
  * these are dynamic component
@@ -53,6 +59,7 @@ declare const systemOptions;
 declare const systemUrls;
 declare const nsEvent;
 declare const nsHooks;
+declare const nsSnackBar;
 
 export class POS {
     private _cartButtons: BehaviorSubject<{ [key: string]: any }>;
@@ -67,6 +74,7 @@ export class POS {
     private _order: BehaviorSubject<Order>;
     private _screen: BehaviorSubject<string>;
     private _holdPopupEnabled = true;
+    private _bootGuards: (() => Promise<unknown>)[] = [];
     private _initialQueue: (() => Promise<StatusResponse>)[] = [];
     private _options: BehaviorSubject<{ [key: string]: any }>;
     private _responsive = new Responsive;
@@ -75,6 +83,8 @@ export class POS {
     private _processingAddQueue = false;
     private _selectedPaymentType: BehaviorSubject<PaymentType>;
     private _userPermissions: BehaviorSubject<{[key:string]: any}[]>;
+    private _wirelessBarcodeState: ReactiveObject<{[key:string]: any}[]>;
+    private wirelessSocket: Socket | null = null;
     
     public print: Print;
 
@@ -179,6 +189,10 @@ export class POS {
         return this._initialQueue;
     }
 
+    get bootGuards() {
+        return this._bootGuards;
+    }
+
     get responsive() {
         return this._responsive;
     }
@@ -215,6 +229,7 @@ export class POS {
                 nsHooks.doAction( 'ns-before-cart-reset' );
 
                 
+                await this.processBootGuards();
                 await this.processInitialQueue();
 
                 nsHooks.doAction( 'ns-after-cart-changed' );
@@ -246,8 +261,18 @@ export class POS {
             delivery,
         ];
 
+        this._wirelessBarcodeState = new ReactiveObject({
+            socket_status: 'disconnected',
+            http_status: 'pending',
+            channel: null,
+            secret: null, 
+            domain: null,
+            clients: [],
+            barcode: '',
+        });
+
         this.initialQueue.push(() => new Promise((resolve, reject) => {
-            nsHttpClient.get(`/api/users/permissions/` ).subscribe({
+            nsHttpClient.get(`/api/user/permissions/` ).subscribe({
                 next: (response: any) => {
                     this._userPermissions.next(response);
                     resolve( response );
@@ -370,6 +395,209 @@ export class POS {
         }
     }
 
+    public storeWirelessState( data )
+    {
+        const currentState = this.wirelessBarcodeState.getValue();
+
+        this._wirelessBarcodeState.next({
+            ...currentState,
+            ...data
+        });
+    }
+
+    public initWirelessBarcodeServer() {
+        const options = this.options.getValue();
+        const settings = this.settings.getValue();
+
+        if ( options.ns_pos_barcode_reader_type === 'wireless' ) {
+            const domain = settings.wireless_socket_domain;
+
+            if ( domain !== null ) {
+                /**
+                 * we'll first initialize the channel and then we'll connect or disconnect based on the current state of the connection
+                 */
+                this.wirelessBarcodeState.update({
+                    http_status: 'pending'
+                });
+
+                const request = new XMLHttpRequest;
+
+                request.open( 'POST', `https://${domain}/api/scanutility/channels`, true );
+                request.onload = () => {
+                    if ( request.status >= 200 && request.status < 300 ) {
+
+                        const response = JSON.parse( request.responseText );
+
+                        if ( Object.keys( response ).includes( 'channel' ) ) {
+                            this.wirelessBarcodeState.update({
+                                channel: response.channel,
+                                http_status: 'successful',
+                            })
+
+                            setTimeout( () => {
+                                this.startWirelessBarcodeChannel();
+                            }, 1000 );
+                        }
+                    } 
+
+                    if ( request.status === 422 ) {
+                        this.wirelessBarcodeState.update({
+                            http_status: 'error'
+                        });
+                    }
+
+                    if ( request.status >= 500 ) {
+                        this.wirelessBarcodeState.update({
+                            http_status: 'error'
+                        });
+                    }
+                }
+
+                request.setRequestHeader( 'Authorization', `Bearer ${  options.mynexopos_access_token }` );
+                request.setRequestHeader( 'Accept', 'application/json' );
+
+                request.onerror = (e) => {
+                    console.log(e)
+                    this.wirelessBarcodeState.update({
+                        http_status: 'error'
+                    });
+
+                    console.error( 'Failed to initialize wireless barcode reader connection.' );
+                }
+
+                request.ontimeout = () => {
+                    this.wirelessBarcodeState.update({
+                        http_status: 'error'
+                    });
+                }
+
+                request.onabort = () => {
+                    this.wirelessBarcodeState.update({
+                        http_status: 'error'
+                    });
+                };
+
+                request.timeout = 10000; // 10 seconds timeout
+
+                request.send(JSON.stringify({
+                    'name' : `pos_${Math.random().toString(36).substring(2, 15)}`,
+                }));
+            }
+        }
+    }
+
+    public startWirelessBarcodeChannel() {
+        const wirelessState = this.wirelessBarcodeState.value;
+        const channel = wirelessState.channel;
+        const options = this.options.getValue();
+        const settings = this.settings.getValue();
+
+        if ( channel.channel_uuid && channel.password ) {
+            if ( this.wirelessSocket ) {
+                this.wirelessSocket.removeAllListeners();
+                this.wirelessSocket.disconnect();
+                this.wirelessSocket = null;
+            }
+
+            this.wirelessSocket = io( `https://${ settings.wireless_socket_domain }/scanutility`, {
+                transports: [ "websocket" ],
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                auth: {
+                    access_token: options.mynexopos_access_token,
+                    role: "host",
+                    license_uuid: channel.license_uuid,
+                }
+            } );
+
+            this.wirelessSocket.on( "connect", () => {
+                this._wirelessBarcodeState.update({
+                    socket_status: 'connected'
+                });
+            } );
+
+            this.wirelessSocket.on( "scanutility.authenticated", () => {
+                console.log({ wirelessState })
+                this.wirelessSocket.emit( 'scanutility.host.attach_channel', { channel_uuid: channel.channel_uuid, password: wirelessState.channel.password } );
+            });
+
+            this.wirelessSocket.on( "scanutility.message", ( payload ) => {
+                this.handleWirelessBarcodePayload( payload );
+            } );
+
+            this.wirelessSocket.on( "barcode", ( payload ) => {
+                this.handleWirelessBarcodePayload( payload );
+            } );
+
+            this.wirelessSocket.on( "disconnect", ( reason ) => {
+                this._wirelessBarcodeState.update({
+                    socket_status: 'disconnected'
+                });
+
+                if ( reason !== "io client disconnect" ) {
+                    nsSnackBar.error( __( "Wireless barcode reader disconnected." ) );
+                }
+            } );
+
+            this.wirelessSocket.on( "scanutility.get.channel.clients", ( response ) => {
+                this.wirelessBarcodeState.update({
+                    clients: response.clients
+                })
+            });
+
+            this.wirelessSocket.on( "connect_error", ( error ) => {
+                this._wirelessBarcodeState.update({
+                    socket_status: 'connexion_error'
+                });
+                console.error( "Socket.IO error with wireless barcode reader connection:", error );
+            } );
+ 
+            this.wirelessSocket.on( 'scanutility.channel.joined', ( data ) => {
+                const state = this.wirelessBarcodeState.getValue();
+                state.clients = state.clients || [];
+
+                console.log( 'Hello World' );
+
+                this._wirelessBarcodeState.update({
+                    clients: [...state.clients, data.user]
+                });
+            });
+        }
+    }
+
+    public stopWirelessBarcodeChannel() {
+        if ( this.wirelessSocket ) {
+            this.wirelessSocket.removeAllListeners();
+            this.wirelessSocket.disconnect();
+            this.wirelessSocket = null;
+            this.wirelessBarcodeState.update({
+                socket_status: 'disconnected',
+                clients: [],
+                http_status: 'stopped',
+            })
+        }
+    }
+
+    public getChannelClients( channeluuid: string ){
+        if ( this.wirelessSocket ) {
+            this.wirelessSocket.emit( 'scanutility.ask.channel.clients', { channel_uuid: channeluuid } );
+        } else {
+            nsSnackBar.info( __( 'The wireless barcode reader is not connected. Please check your connection and try again.' ) );
+        }
+    }
+
+    private handleWirelessBarcodePayload( message: any ) {
+        console.log({ message })
+
+        if ( message.type === 'barcode.scanned' ) {
+            this.wirelessBarcodeState.update({
+                barcode: message.payload.barcode
+            });
+        }
+    }
+
     public getSalePrice(item) {
         let price = 0;
 
@@ -440,6 +668,18 @@ export class POS {
     }
 
     /**
+     * Run blocking operator and security checks before regular initialization.
+     * These guards intentionally have no timeout because they can require input.
+     */
+    async processBootGuards() {
+        for ( const guard of this._bootGuards ) {
+            await guard();
+        }
+
+        return true;
+    }
+
+    /**
      * This methods run as part of the verification
      * of the cart refreshing. Cannot refresh the cart.
      * @param coupon coupon
@@ -467,6 +707,10 @@ export class POS {
         order.coupons.push(coupon);
         this.order.next(order);
         this.refreshCart();
+    }
+
+    get wirelessBarcodeState() {
+        return this._wirelessBarcodeState;
     }
 
     get header() {
@@ -508,12 +752,14 @@ export class POS {
     }
 
     defineCurrentScreen() {
-        this._visibleSection.next(['xs', 'sm'].includes(<string>this._responsive.is()) ? 'grid' : 'both');
-        this._screen.next(<string>this._responsive.is());
+        const screen = <string>this._responsive.is();
+        this._visibleSection.next( resolvePosSection( this.options.getValue().ns_pos_layout, null, screen ) );
+        this._screen.next( screen );
     }
 
     changeVisibleSection(section) {
         if (['both', 'cart', 'grid'].includes(section)) {
+            section = resolvePosSection( this.options.getValue().ns_pos_layout, section, <string>this._responsive.is() );
 
             if (['cart', 'both'].includes(section)) {
                 this.refreshCart();
@@ -1231,48 +1477,8 @@ export class POS {
      */
     checkCart() {
         const order = this.order.getValue();
-        const unmatchedConditions = [];
-
-        order.coupons.forEach(coupon => {
-            /**
-             * by default we'll bypass
-             * the product if it's not available
-             */
-            let isProductValid = true;
-
-            /**
-             * if the coupon includes products
-             * we make sure the products are included on the cart
-             */
-            if (coupon.products.length > 0) {
-                isProductValid = order.products.filter(product => {
-                    return coupon.products.map(p => p.product_id).includes(product.product_id);
-                }).length > 0;
-
-                if (!isProductValid && unmatchedConditions.indexOf(coupon) === -1) {
-                    unmatchedConditions.push(coupon);
-                }
-            }
-
-            /**
-             * by default we'll bypass
-             * the product if it's not available
-             */
-            let isCategoryValid = true;
-
-            /**
-             * if the coupon includes products
-             * we make sure the products are included on the cart
-             */
-            if (coupon.categories.length > 0) {
-                isCategoryValid = order.products.filter(product => {
-                    return coupon.categories.map(p => p.category_id).includes(product.$original().category_id);
-                }).length > 0;
-
-                if (!isCategoryValid && unmatchedConditions.indexOf(coupon) === -1) {
-                    unmatchedConditions.push(coupon);
-                }
-            }
+        const unmatchedConditions = order.coupons.filter(coupon => {
+            return ! cartSatisfiesCouponRestrictions(coupon, order.products);
         });
 
         unmatchedConditions.forEach(coupon => {
@@ -1498,7 +1704,7 @@ export class POS {
                      * if a popup resolve "false",
                      * that means for some reason the Promise has
                      * been broken, therefore we need to stop the queue.
-                     */
+                     */                    
                     if (brokenPromise === false) {
                         this._processingAddQueue = false;
                         return false;
@@ -1558,7 +1764,6 @@ export class POS {
              * push the new product
              * at the front of the cart
              */
-            console.log( JSON.parse( JSON.stringify( cartProduct ) ) );
             products.unshift(cartProduct);
         }
 
@@ -1836,6 +2041,18 @@ export class POS {
          */
         this.computeDiscount( product );
 
+        let unitPrice = nsHooks.applyFilters( 'ns-pos-product-unit-price', product.unit_price, product );
+
+        /**
+         * Once-per-line extra (not multiplied by quantity). Modules use this for
+         * surcharges such as an appointment room fee attached to a service line.
+         * The amount is stored on the product, included in the tax base, and
+         * added to total_price after unit × qty − discount.
+         */
+        const rawLineExtra = nsHooks.applyFilters( 'ns-pos-product-line-extra', 0, product );
+        const lineExtra = Number( rawLineExtra );
+        product.line_extra = Number.isFinite( lineExtra ) ? Math.max( 0, lineExtra ) : 0;
+
         /**
          * The price with and without tax
          * needs to be updated as tax is by default computed
@@ -1843,9 +2060,11 @@ export class POS {
          */
         this.computeProductTaxValue( product );
 
-        let unitPrice = nsHooks.applyFilters( 'ns-pos-product-unit-price', product.unit_price, product );
-        
-        product.total_price =   math.chain( unitPrice ).multiply( product.quantity ).subtract( product.discount ).done();
+        product.total_price = math.chain( unitPrice )
+            .multiply( product.quantity )
+            .subtract( product.discount )
+            .add( product.line_extra || 0 )
+            .done();
         
         // Ensure total_tax_value is set (fallback for old computation paths)
         if ( product.total_tax_value === undefined ) {
@@ -1896,10 +2115,19 @@ export class POS {
         
         // Calculate line total after discount
         const lineAfterDiscount = math.chain( lineSubtotal ).subtract( product.discount ).done();
+
+        /**
+         * Include once-per-line extras (ns-pos-product-line-extra) in the tax base
+         * so surcharges such as room fees are taxed with the line.
+         */
+        const lineExtra = Number( product.line_extra || 0 );
+        const taxableLineTotal = math.chain( lineAfterDiscount )
+            .add( Number.isFinite( lineExtra ) ? Math.max( 0, lineExtra ) : 0 )
+            .done();
         
-        // Compute tax on the discounted line total
+        // Compute tax on the discounted line total (+ line extra)
         let result = this.computeTaxForGroup( 
-            lineAfterDiscount, 
+            taxableLineTotal, 
             tax_group, 
             product.tax_type
         );
@@ -2076,15 +2304,11 @@ export class POS {
     }
 
     set(key, value) {
-        const settings = this.settings.getValue();
-        settings[key] = value;
-        this.settings.next(settings);
+        this.settings.next( setPosSetting( this.settings.getValue(), key, value ) );
     }
 
     unset(key) {
-        const settings = this.settings.getValue();
-        delete settings[key];
-        this.settings.next(settings);
+        this.settings.next( unsetPosSetting( this.settings.getValue(), key ) );
     }
 
     get(key) {

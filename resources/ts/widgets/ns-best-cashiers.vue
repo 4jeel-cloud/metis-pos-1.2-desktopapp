@@ -3,7 +3,10 @@
         <div class="flex-auto">
             <div class="ns-box-header text-center border-b w-full flex justify-between items-center p-2">
                 <h5>{{ __( 'Best Cashiers' ) }}</h5>
-                <div class="flex justify-between">
+                <div class="flex items-center justify-between">
+                    <div class="px-1">
+                        <ns-widget-layout-selector :widget="widget"></ns-widget-layout-selector>
+                    </div>
                     <div class="px-1">
                         <ns-icon-button class="widget-handle" className="la-expand-arrows-alt"></ns-icon-button>
                     </div>
@@ -28,7 +31,7 @@
                                     </div>
                                 </div>
                             </th>
-                            <th class="flex justify-end p-2">{{ nsCurrency( cashier.total_sales, 'abbreviate' ) }}</th>
+                            <th class="p-2 text-right">{{ nsCurrency( cashier.total_sales, 'abbreviate' ) }}</th>
                         </tr>
                         <tr v-if="cashiers.length === 0">
                             <th colspan="2">{{ __( 'No result to display.' ) }}</th>
@@ -51,6 +54,7 @@ import { nsCurrency } from '~/filters/currency';
 import { __ } from '~/libraries/lang';
 export default {
     name: 'ns-best-cashiers',
+    props: [ 'widget' ],
     data() {
         return {
             subscription: null,

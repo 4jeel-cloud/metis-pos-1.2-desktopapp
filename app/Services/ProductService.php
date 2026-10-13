@@ -15,6 +15,8 @@ use App\Models\OrderProduct;
 use App\Models\Procurement;
 use App\Models\ProcurementProduct;
 use App\Models\Product;
+use App\Models\ProductAdjustment;
+use App\Models\ProductAdjustmentItem;
 use App\Models\ProductCategory;
 use App\Models\ProductGallery;
 use App\Models\ProductHistory;
@@ -26,6 +28,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ProductService
@@ -44,10 +47,9 @@ class ProductService
      * Get produt using
      * the provided id
      *
-     * @param int product id
-     * @return Product
+     * @param int $id Product id
      */
-    public function get( $id )
+    public function get( int $id ): Product
     {
         $product = Product::find( $id );
 
@@ -60,11 +62,8 @@ class ProductService
 
     /**
      * Get Product using barcode
-     *
-     * @param string barcode
-     * @return Product|false
      */
-    public function getProductUsingBarcode( $barcode )
+    public function getProductUsingBarcode( string $barcode ): Product|false
     {
         /**
          * checks if a similar product already
@@ -82,11 +81,8 @@ class ProductService
 
     /**
      * Get Product using barcode
-     *
-     * @param string barcode
-     * @return Product|false
      */
-    public function getProductUsingBarcodeOrFail( $barcode )
+    public function getProductUsingBarcodeOrFail( string $barcode ): Product|false
     {
         /**
          * checks if a similar product already
@@ -104,11 +100,8 @@ class ProductService
 
     /**
      * Get Product using sku
-     *
-     * @param string sku
-     * @return Product|false
      */
-    public function getProductUsingSKU( $sku )
+    public function getProductUsingSKU( string $sku ): Product|false
     {
         /**
          * checks if a similar product already
@@ -127,11 +120,8 @@ class ProductService
     /**
      * retrive a product using a SKU or fail
      * if the product is not found
-     *
-     * @param string sku
-     * @return Product
      */
-    public function getProductUsingSKUOrFail( $sku )
+    public function getProductUsingSKUOrFail( string $sku ): Product
     {
         $product = $this->getProductUsingSKU( $sku );
 
@@ -146,10 +136,10 @@ class ProductService
      * Create a product either it's a "product"
      * or a "variable" product
      *
-     * @param array data to handle
+     * @param  array $data Data to handle
      * @return array response
      */
-    public function create( $data )
+    public function create( array $data ): array
     {
         /**
          * check if the provided category
@@ -187,6 +177,8 @@ class ProductService
             } );
         }
 
+        $this->validateScheduledProcurementSettings( $data );
+
         /**
          * check if it's a simple product or not
          */
@@ -202,10 +194,10 @@ class ProductService
     /**
      * create a variable product
      *
-     * @param array data to handle
+     * @param  array $data Data to handle
      * @return array response
      */
-    public function createVariableProduct( $data )
+    public function createVariableProduct( array $data ): array
     {
         /**
          * let's try to check if the product required
@@ -253,10 +245,10 @@ class ProductService
     /**
      * Create a simple product
      *
-     * @param array data to handle
+     * @param  array $data Data to handle
      * @return array response
      */
-    public function createSimpleProduct( $data )
+    public function createSimpleProduct( array $data ): array
     {
         if ( ! empty( $data[ 'barcode' ] ) && $this->getProductUsingBarcode( $data[ 'barcode' ] ) instanceof Product ) {
             throw new Exception( sprintf(
@@ -266,7 +258,7 @@ class ProductService
         }
 
         if ( empty( $data[ 'barcode_type' ] ) ) {
-            $data[ 'barcode_type' ] = 'ean8';
+            $data[ 'barcode_type' ] = ns()->option->get( 'ns_pos_default_barcode_type', 'code128' );
         }
 
         if ( empty( $data[ 'barcode' ] ) ) {
@@ -343,7 +335,7 @@ class ProductService
         ];
     }
 
-    public function checkPinnedProducts( $data, ?Product $product = null )
+    public function checkPinnedProducts( array $data, ?Product $product = null ): void
     {
         if ( $product instanceof Product ) {
             $countPinned = Product::where( 'pinned', 1 )
@@ -366,9 +358,9 @@ class ProductService
     /**
      * Update a product either is a "product" or a "variable"
      *
-     * @param int product id
-     * @param array fields
-     * @return array response
+     * @param  Product $product Product instance
+     * @param  array   $data    Fields
+     * @return array   response
      */
     public function update( Product $product, array $data ): array
     {
@@ -408,6 +400,8 @@ class ProductService
             } );
         }
 
+        $this->validateScheduledProcurementSettings( $data );
+
         switch ( $data[ 'product_type' ] ) {
             case 'product':
                 return $this->updateSimpleProduct( $product, $data );
@@ -424,11 +418,8 @@ class ProductService
     /**
      * Will release the product taxes
      * before a new modification is made to it
-     *
-     * @param Product
-     * @return void
      */
-    public function releaseProductTaxes( $product )
+    public function releaseProductTaxes( Product $product ): void
     {
         $product->product_taxes()->delete();
     }
@@ -436,10 +427,8 @@ class ProductService
     /**
      * Performs a verification to see if the subitems only
      * consist of valid items (not gruoped items).
-     *
-     * @param array $fields
      */
-    public function checkGroupProduct( $fields ): void
+    public function checkGroupProduct( array $fields ): void
     {
         if ( ! isset( $fields[ 'product_subitems' ] ) ) {
             throw new NotAllowedException( __( 'A grouped product cannot be saved without any sub items.' ) );
@@ -459,11 +448,11 @@ class ProductService
      * the variable within a product, if this latest has
      * the type "product" before
      *
-     * @param int product id
-     * @param array fields
-     * @return array response
+     * @param  Product|int $id     Product id or instance
+     * @param  array       $fields Fields
+     * @return array       response
      */
-    public function updateSimpleProduct( $id, $fields )
+    public function updateSimpleProduct( Product|int $id, array $fields ): array
     {
         /**
          * will get a product if
@@ -543,10 +532,9 @@ class ProductService
     /**
      * Saves the sub items by binding that to a product
      *
-     * @param  array $subItems
      * @return array response
      */
-    public function saveSubItems( Product $product, $subItems )
+    public function saveSubItems( Product $product, array $subItems ): array
     {
         $savedItems = collect( [] );
 
@@ -597,7 +585,7 @@ class ProductService
         ];
     }
 
-    public function saveGallery( Product $product, $groups )
+    public function saveGallery( Product $product, array|Collection $groups ): void
     {
         $product->galleries()
             ->get()
@@ -646,17 +634,17 @@ class ProductService
     /**
      * Update a variable product
      *
-     * @param array fields to save
+     * @param  array $data Fields to save
      * @return array response of the process
      */
-    public function updateVariableProduct( Product $product, $data )
+    public function updateVariableProduct( Product $product, array $data ): array
     {
         /**
          * let's try to check if the product variations
          * doesn't use any barcode already in use excluding
          * their id
          *
-         * @var Illuminate\Support\Collection
+         * @var Collection $valid
          */
         $valid = collect( $data[ 'variations' ] )->filter( function ( $product ) {
             return ! empty( $product[ 'id' ] );
@@ -694,11 +682,7 @@ class ProductService
          * let's update the product and recover the
          * parent product, which id will be reused.
          *
-         * @var array [
-         *            'status': string,
-         *            'message': string,
-         *            'product': Product
-         *            ]
+         * @var array{status: string, message: string, data: array{product: Product}} $result
          */
         $result = $this->updateSimpleProduct( $product, $data );
         $parent = $result[ 'data' ][ 'product' ];
@@ -728,13 +712,13 @@ class ProductService
      * product according to the tax assigned
      * to that product
      */
-    private function __fillProductFields( Product $product, array $data )
+    private function __fillProductFields( Product $product, array $data ): void
     {
         /**
          * @param string $field
          * @param mixed  $value
          * @param string $mode
-         * @param array fields
+         * @param array  $fields
          */
         extract( $data );
 
@@ -742,12 +726,51 @@ class ProductService
             $product->$field = $value;
         } elseif ( $field === 'units' ) {
             $product->unit_group = $fields[ 'units' ][ 'unit_group' ];
+            $product->default_purchase_unit_id = $fields[ 'units' ][ 'default_purchase_unit_id' ] ?? null;
+            $product->scheduled_reorder_quantity = $fields[ 'units' ][ 'scheduled_reorder_quantity' ] ?? null;
             $product->accurate_tracking = $fields[ 'units' ][ 'accurate_tracking' ] ?? false;
             $product->auto_cogs = $fields[ 'units' ][ 'auto_cogs' ] ?? false;
         }
     }
 
-    private function __computeUnitQuantities( $fields, $product )
+    /**
+     * Validate the optional product-level settings used by scheduled procurement.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function validateScheduledProcurementSettings( array $data ): void
+    {
+        $purchaseUnitId = data_get( $data, 'units.default_purchase_unit_id' );
+        $reorderQuantity = data_get( $data, 'units.scheduled_reorder_quantity' );
+
+        if ( $purchaseUnitId === null && ( $reorderQuantity === null || $reorderQuantity === '' ) ) {
+            return;
+        }
+
+        if ( $purchaseUnitId === null || $purchaseUnitId === '' ) {
+            throw new NotAllowedException( __( 'A default purchase unit is required when a scheduled reorder quantity is configured.' ) );
+        }
+
+        if ( $reorderQuantity === null || $reorderQuantity === '' || ! is_numeric( $reorderQuantity ) || (float) $reorderQuantity <= 0 ) {
+            throw new NotAllowedException( __( 'The scheduled reorder quantity must be greater than zero.' ) );
+        }
+
+        $unit = Unit::query()->find( (int) $purchaseUnitId );
+        if ( ! $unit instanceof Unit ) {
+            throw new NotAllowedException( __( 'The default purchase unit does not exist.' ) );
+        }
+
+        $assignedUnitIds = collect( data_get( $data, 'units.selling_group', [] ) )
+            ->pluck( 'unit_id' )
+            ->filter()
+            ->map( static fn ( mixed $unitId ): int => (int) $unitId );
+
+        if ( ! $assignedUnitIds->contains( (int) $unit->id ) ) {
+            throw new NotAllowedException( __( 'The default purchase unit must be assigned to the product.' ) );
+        }
+    }
+
+    private function __computeUnitQuantities( array $fields, Product $product ): void
     {
         if ( $fields[ 'units' ] ) {
             foreach ( $fields[ 'units' ][ 'selling_group' ] as $group ) {
@@ -805,7 +828,7 @@ class ProductService
                 /**
                  * save custom barcode for the created unit quantity
                  */
-                $unitQuantity->barcode = $product->barcode . '-' . $unitQuantity->id;
+                $unitQuantity->barcode = $group[ 'barcode' ] ?? $product->barcode . '-' . $unitQuantity->id;
                 $unitQuantity->save();
 
                 /**
@@ -816,9 +839,20 @@ class ProductService
                         $plu = $this->generateScalePLU( $product->id, $unitQuantity->id );
                         $unitQuantity->scale_plu = $plu;
                         $unitQuantity->save();
-                    } catch ( \Exception $e ) {
+                    } catch ( Exception $e ) {
                         // PLU generation failed - product category may not have a range assigned
                         // This is not a critical error, so we'll just skip it
+                        ns()->notification->create(
+                            title: __( 'PLU Range: Failure' ),
+                            identifier: 'product-scale-plu-error-' . $unitQuantity->id,
+                            url: route( 'ns.dashboard.products-categories', [
+                                'id' => $product->category_id,
+                            ] ),
+                            description: sprintf( __( 'Unable to generate a scale PLU for %s: %s' ), $product->name, $e->getMessage() ),
+                        )->dispatchForPermissions( [
+                            'nexopos.create.products',
+                            'nexopos.update.products',
+                        ] );
                     }
                 }
             }
@@ -882,14 +916,34 @@ class ProductService
     /**
      * refresh the price for a specific product
      *
-     * @param ProductUnitQuantity instance of the product
-     * @return array response of the operation
+     * @param  ProductUnitQuantity $product Instance of the product
+     * @return array               response of the operation
      *
      * @deprecated
      */
     public function refreshPrices( ProductUnitQuantity $product )
     {
         return $this->taxService->computeTax( $product, $product->tax_group_id ?? null );
+    }
+
+    /**
+     * Update editable product-unit prices and recompute all derived tax values.
+     *
+     * @param array{sale_price_edit?: float|int, wholesale_price_edit?: float|int} $prices
+     */
+    public function updateUnitEditPrices( ProductUnitQuantity $unitQuantity, array $prices ): ProductUnitQuantity
+    {
+        foreach ( ['sale_price_edit', 'wholesale_price_edit'] as $field ) {
+            if ( array_key_exists( $field, $prices ) ) {
+                $unitQuantity->{$field} = $prices[$field];
+            }
+        }
+
+        $product = $unitQuantity->product()->firstOrFail();
+        $this->taxService->computeTax( $unitQuantity, $product->tax_group_id, $product->tax_type );
+        $unitQuantity->save();
+
+        return $unitQuantity->refresh();
     }
 
     /**
@@ -912,8 +966,8 @@ class ProductService
     /**
      * save product history
      *
-     * @param string operation type
-     * @param array history to save
+     * @param  string $operationType Operation type
+     * @param  array  $data          History to save
      * @return array
      */
     public function saveHistory( $operationType, array $data )
@@ -929,20 +983,18 @@ class ProductService
      * Record a procurement history for
      * a specific set of product informations
      *
-     * @param array product informations to handle
-     * @return array response of the process.
-     * @return void
+     * @param array $data Product information to handle
      */
-    private function __saveProcurementHistory( $data )
+    private function __saveProcurementHistory( array $data ): void
     {
         /**
-         * @var int   unit_id
-         * @var int   product_id
-         * @var float unit_price
-         * @var float total_price
-         * @var int   procurement_product_id
-         * @var int   procurement_id
-         * @var float quantity
+         * @var int   $unit_id
+         * @var int   $product_id
+         * @var float $unit_price
+         * @var float $total_price
+         * @var int   $procurement_product_id
+         * @var int   $procurement_id
+         * @var float $quantity
          */
         extract( $data );
 
@@ -972,12 +1024,12 @@ class ProductService
      * this will update the quantity of
      * a product using a unit as a reference
      *
-     * @param int product id
-     * @param int unit id
-     * @param float quantity
-     * @return arrray response
+     * @param  int   $product_id Product id
+     * @param  int   $unit_id    Unit id
+     * @param  float $quantity   Quantity
+     * @return array response
      */
-    public function setQuantity( $product_id, $unit_id, $quantity )
+    public function setQuantity( int $product_id, int $unit_id, float|int $quantity ): array
     {
         $query = ProductUnitQuantity::where( 'product_id', $product_id )
             ->where( 'unit_id', $unit_id );
@@ -1004,10 +1056,10 @@ class ProductService
      * Reset a product quantity
      * this will delete all quantity
      *
-     * @param int|Product product id
-     * @return array response
+     * @param  int|Product $product_id Product id or instance
+     * @return array       response
      */
-    public function resetProduct( $product_id )
+    public function resetProduct( Product|int $product_id ): array
     {
         /**
          * to avoid multiple call to the DB
@@ -1045,7 +1097,7 @@ class ProductService
         }
     }
 
-    private function __resetProductRelatives( Product $product )
+    private function __resetProductRelatives( Product $product ): array
     {
         ProductHistory::where( 'product_id', $product->id )->delete();
         ProductUnitQuantity::where( 'product_id', $product->id )->delete();
@@ -1067,10 +1119,9 @@ class ProductService
      * delete a product using the
      * provided identifier
      *
-     * @param int product id
      * @return array operation status
      */
-    public function deleteUsingID( $product_id )
+    public function deleteUsingID( int $product_id ): array
     {
         $product = $this->get( $product_id );
 
@@ -1080,10 +1131,10 @@ class ProductService
     /**
      * delete an instance of a product
      *
-     * @param Product instance to delete
-     * @return array operation status
+     * @param  Product $product Instance to delete
+     * @return array   operation status
      */
-    public function deleteProduct( Product $product )
+    public function deleteProduct( Product $product ): array
     {
         $name = $product->name;
 
@@ -1098,8 +1149,8 @@ class ProductService
     /**
      * get product variation
      *
-     * @param int|Product
-     * @return Collection<Product> variation
+     * @param  int|Product         $product Product id or instance
+     * @return Collection<Product>
      */
     public function getProductVariations( $product = null )
     {
@@ -1117,21 +1168,20 @@ class ProductService
     /**
      * get variations
      *
-     * @param int id to find
-     * @return Product
+     * @param  int                 $product_id Product id
+     * @return Collection<Product>
      */
-    public function getVariations()
+    public function getVariations( int $product_id ): Collection
     {
-        return Product::onlyVariations()->get();
+        return Product::where( 'id', $product_id )->onlyVariations()->get();
     }
 
     /**
      * get speciifc variation
      *
-     * @param int variation id
-     * @return Product
+     * @param int $id Variation id
      */
-    public function getVariation( $id )
+    public function getVariation( int $id ): Product
     {
         $variation = Product::where( 'product_type', 'variation' )
             ->where( 'id', $id )
@@ -1147,10 +1197,9 @@ class ProductService
     /**
      * get unit quantity for a specific product
      *
-     * @param int product id
      * @return Collection<ProductUnitQuantity>
      */
-    public function getUnitQuantities( $product_id )
+    public function getUnitQuantities( int $product_id ): Collection
     {
         return ProductUnitQuantity::withProduct( $product_id )
             ->get()
@@ -1161,7 +1210,7 @@ class ProductService
             } );
     }
 
-    public function getUnitQuantity( $product_id, $unit_id ): ?ProductUnitQuantity
+    public function getUnitQuantity( int $product_id, int $unit_id ): ?ProductUnitQuantity
     {
         return ProductUnitQuantity::withProduct( $product_id )
             ->withUnit( $unit_id )
@@ -1171,10 +1220,10 @@ class ProductService
     /**
      * get specific product quantity using the provided id
      *
-     * @param int id
+     * @param  int                        $product_id Product id
      * @return Collection<ProductHistory>
      */
-    public function getProductHistory( $product_id )
+    public function getProductHistory( int $product_id ): Collection
     {
         return ProductHistory::withProduct( $product_id )->orderBy( 'id' )->get()->map( function ( $product ) {
             $product->unit;
@@ -1184,11 +1233,10 @@ class ProductService
     }
 
     /**
-     * @param ProcurementProduct updating a procurement
-     * @param array fields [ quantity, unit_id, purchase_price ]
-     * @return void
+     * @param ProcurementProduct $oldProduct Updating procurement product
+     * @param array              $fields     Fields [ quantity, unit_id, purchase_price ]
      */
-    public function procurementStockOuting( ProcurementProduct $oldProduct, $fields )
+    public function procurementStockOuting( ProcurementProduct $oldProduct, array $fields ): array
     {
         $history = $this->stockAdjustment( ProductHistory::ACTION_REMOVED, [
             'unit_id' => $oldProduct->unit_id,
@@ -1209,28 +1257,36 @@ class ProductService
     }
 
     /**
-     * make an unit adjustment for
-     * a specific product
+     * Make a unit adjustment for a specific product.
      *
-     * @param string operation : deducted, sold, procured, deleted, adjusted, damaged
-     * @param mixed[]<$unit_id,$product_id,$unit_price,?$total_price,?$procurement_id,?$procurement_product_id,?$sale_id,?$quantity> $data to manage
+     * @param string                                                                                                                                                                                                                                                                                                                                       $action Operation: deducted, sold, procured, deleted, adjusted, damaged
+     * @param array{unit_id?: int, unit?: Unit, product_id?: int, sku?: string, unit_price: float|int, total_price?: float|int, procurement_id?: int|null, procurement_product_id?: int|null, sale_id?: int|null, quantity: float|int, orderProduct?: OrderProduct|null, procurementProduct?: ProcurementProduct|null, description?: string, author?: int} $data   Data to manage
      */
-    public function stockAdjustment( $action, $data ): ProductHistory|EloquentCollection|bool
+    public function stockAdjustment( string $action, array $data ): ProductHistory|EloquentCollection|bool
+    {
+        return DB::transaction(
+            fn() => $this->persistStockAdjustment( $action, $data ),
+            attempts: 3
+        );
+    }
+
+    private function persistStockAdjustment( string $action, array $data ): ProductHistory|EloquentCollection|bool
     {
         extract( $data, EXTR_REFS );
         /**
-         * @param int                $product_id
-         * @param float              $unit_price
-         * @param id                 $unit_id
-         * @param float              $total_price
-         * @param int                $procurement_product_id
-         * @param OrderProduct       $orderProduct
-         * @param ProcurementProduct $procurementProduct
-         * @param string             $description
-         * @param float              $quantity
-         * @param string             $sku
-         * @param string             $unit_identifier
-         * @param int                $author
+         * @var int|null                $product_id
+         * @var float|int               $unit_price
+         * @var int|null                $unit_id
+         * @var Unit|null               $unit
+         * @var float|int|null          $total_price
+         * @var int|null                $procurement_product_id
+         * @var OrderProduct|null       $orderProduct
+         * @var ProcurementProduct|null $procurementProduct
+         * @var string|null             $description
+         * @var float|int               $quantity
+         * @var string|null             $sku
+         * @var string|null             $unit_identifier
+         * @var int|null                $author
          */
         $product = isset( $product_id ) ? Product::find( $product_id ) : Product::usingSKU( $sku )->first();
 
@@ -1292,6 +1348,7 @@ class ProductService
                     orderProduct: isset( $orderProduct ) ? $orderProduct : null,
                     procurementProduct: isset( $procurementProduct ) ? $procurementProduct : null,
                     author: $author ?? 0,
+                    description: $description ?? '',
                 );
             }
         }
@@ -1300,15 +1357,11 @@ class ProductService
     }
 
     /**
-     * Handle stock transaction for the grouped products
-     *
-     * @param string $action
-     * @param float  $quantity
-     * @param Unit   $unit
+     * Handle stock transaction for grouped products.
      */
     private function handleStockAdjustmentsForGroupedProducts(
-        $action,
-        $orderProductQuantity,
+        string $action,
+        float|int $orderProductQuantity,
         Product $product,
         Unit $parentUnit,
         int $author = 0,
@@ -1339,9 +1392,7 @@ class ProductService
                 );
 
                 /**
-                 * @var string status
-                 * @var string message
-                 * @var array  [ 'oldQuantity', 'newQuantity' ]
+                 * @var array{status: string, message: string, data: array{oldQuantity: float|int, newQuantity: float|int, quantity: float|int}} $result
                  */
                 $result = $this->reduceUnitQuantities(
                     product_id: $subItem->product_id,
@@ -1351,9 +1402,7 @@ class ProductService
                 );
             } elseif ( in_array( $action, $this->getIncreaseActions() ) ) {
                 /**
-                 * @var string status
-                 * @var string message
-                 * @var array  [ 'oldQuantity', 'newQuantity' ]
+                 * @var array{status: string, message: string, data: array{oldQuantity: float|int, newQuantity: float|int, quantity: float|int}} $result
                  */
                 $result = $this->increaseUnitQuantities(
                     product_id: $subItem->product_id,
@@ -1406,11 +1455,10 @@ class ProductService
     /**
      * Will prevent negativity to occurs
      *
-     * @param  float $oldQuantity
-     * @param  float $quantity
-     * @return void
+     * @param float $oldQuantity
+     * @param float $quantity
      */
-    private function preventNegativity( $oldQuantity, $quantity )
+    private function preventNegativity( float|int $oldQuantity, float|int $quantity ): void
     {
         $diffQuantity = $this->currency
             ->define( $oldQuantity )
@@ -1427,20 +1475,9 @@ class ProductService
     }
 
     /**
-     * We'll handle here stock adjustment
-     * for all regular products
-     *
-     * @param  string             $action
-     * @param  float              $oldQuantity
-     * @param  float              $quantity
-     * @param  int                $product_id
-     * @param  int                $order_id
-     * @param  int                $order_product_id
-     * @param  int                $unit_id
-     * @param  ProcurementProduct $procurementProduct
-     * @return ProductHistory
+     * Handle stock adjustment for regular products.
      */
-    private function handleStockAdjustmentRegularProducts( $action, $quantity, $product_id, $unit_id, $author = 0, $orderProduct = null, $unit_price = 0, $total_price = 0, $procurementProduct = null )
+    private function handleStockAdjustmentRegularProducts( string $action, float|int $quantity, int $product_id, int $unit_id, int $author = 0, ?OrderProduct $orderProduct = null, float|int $unit_price = 0, float|int $total_price = 0, ?ProcurementProduct $procurementProduct = null, string $description = '' ): ProductHistory
     {
         /**
          * we would like to verify if
@@ -1457,9 +1494,7 @@ class ProductService
                 );
 
                 /**
-                 * @var string status
-                 * @var string message
-                 * @var array  [ 'oldQuantity', 'newQuantity' ]
+                 * @var array{status: string, message: string, data: array{oldQuantity: float|int, newQuantity: float|int, quantity: float|int}} $result
                  */
                 $result = $this->reduceUnitQuantities( $product_id, $unit_id, abs( $quantity ), $oldQuantity );
 
@@ -1473,9 +1508,7 @@ class ProductService
                 }
             } elseif ( in_array( $action, $this->getIncreaseActions() ) ) {
                 /**
-                 * @var string status
-                 * @var string message
-                 * @var array  [ 'oldQuantity', 'newQuantity' ]
+                 * @var array{status: string, message: string, data: array{oldQuantity: float|int, newQuantity: float|int, quantity: float|int}} $result
                  */
                 $result = $this->increaseUnitQuantities( $product_id, $unit_id, abs( $quantity ), $oldQuantity );
 
@@ -1502,7 +1535,8 @@ class ProductService
                 order_id: isset( $orderProduct ) ? $orderProduct->order_id : null,
                 order_product_id: isset( $orderProduct ) ? $orderProduct->id : null,
                 old_quantity: $result[ 'data' ][ 'oldQuantity' ],
-                new_quantity: $result[ 'data' ][ 'newQuantity' ]
+                new_quantity: $result[ 'data' ][ 'newQuantity' ],
+                description: $description
             );
         } elseif (
             in_array( $action, [ ProductHistory::ACTION_SET ] )
@@ -1547,7 +1581,8 @@ class ProductService
                 order_id: isset( $orderProduct ) ? $orderProduct->order_id : null,
                 order_product_id: isset( $orderProduct ) ? $orderProduct->id : null,
                 old_quantity: $currentQuantity,
-                new_quantity: $quantity
+                new_quantity: $quantity,
+                description: $description
             );
         }
 
@@ -1562,29 +1597,27 @@ class ProductService
     /**
      * Records stock transaction for the provided product.
      *
-     * @param int    $product_id
-     * @param string $action
-     * @param int    $unit_id
-     * @param float  $unit_price
-     * @param float  $quantity
-     * @param float  $total_price
-     * @param float  $old_quantity
-     * @param float  $new_quantity
+     * @param float $unit_price
+     * @param float $quantity
+     * @param float $total_price
+     * @param float $old_quantity
+     * @param float $new_quantity
      */
     public function recordStockHistory(
-        $product_id,
-        $action,
-        $unit_id,
-        $unit_price,
-        $quantity,
-        $total_price,
-        $author = 0,
+        int $product_id,
+        string $action,
+        int $unit_id,
+        float|int $unit_price,
+        float|int $quantity,
+        float|int $total_price,
+        int $author = 0,
         $order_id = null,
         $order_product_id = null,
         $procurement_product_id = null,
         $procurement_id = null,
-        $old_quantity = 0,
-        $new_quantity = 0 )
+        float|int $old_quantity = 0,
+        float|int $new_quantity = 0,
+        string $description = '' ): ProductHistory
     {
         $history = new ProductHistory;
         $history->product_id = $product_id;
@@ -1596,7 +1629,7 @@ class ProductService
         $history->operation_type = $action;
         $history->unit_price = $unit_price;
         $history->total_price = $total_price;
-        $history->description = $description ?? ''; // a description might be provided to describe the operation
+        $history->description = $description;
         $history->before_quantity = $old_quantity; // if the stock management is 0, it shouldn't change
         $history->quantity = abs( $quantity );
         $history->after_quantity = $new_quantity; // if the stock management is 0, it shouldn't change
@@ -1632,12 +1665,8 @@ class ProductService
 
     /**
      * Update procurement product quantity
-     *
-     * @param ProcurementProduct $procurementProduct
-     * @param int                $quantity
-     * @param string             $action
      */
-    public function updateProcurementProductQuantity( $procurementProduct, $quantity, $action )
+    public function updateProcurementProductQuantity( ProcurementProduct $procurementProduct, float|int $quantity, string $action ): void
     {
         if ( $action === ProcurementProduct::STOCK_INCREASE ) {
             $procurementProduct->available_quantity += $quantity;
@@ -1652,12 +1681,12 @@ class ProductService
      * reduce Product unit quantities and update
      * the available quantity for the unit provided
      *
-     * @param int product_id
-     * @param int unit_id
-     * @param float quantity
-     * @return void
+     * @param int       $product_id  Product id
+     * @param int       $unit_id     Unit id
+     * @param float|int $quantity    Quantity
+     * @param float|int $oldQuantity Old quantity
      */
-    public function reduceUnitQuantities( $product_id, $unit_id, $quantity, $oldQuantity )
+    public function reduceUnitQuantities( int $product_id, int $unit_id, float|int $quantity, float|int $oldQuantity ): array
     {
         /**
          * we would like to verify if
@@ -1691,12 +1720,12 @@ class ProductService
      * Increase Product unit quantities and update
      * the available quantity for the unit provided
      *
-     * @param int product_id
-     * @param int unit_id
-     * @param float quantity
-     * @return void
+     * @param int       $product_id  Product id
+     * @param int       $unit_id     Unit id
+     * @param float|int $quantity    Quantity
+     * @param float|int $oldQuantity Old quantity
      */
-    public function increaseUnitQuantities( $product_id, $unit_id, $quantity, $oldQuantity )
+    public function increaseUnitQuantities( int $product_id, int $unit_id, float|int $quantity, float|int $oldQuantity ): array
     {
         /**
          * we would like to verify if
@@ -1730,9 +1759,9 @@ class ProductService
      * add a stock entry to a product
      * history using the provided informations
      *
-     * @param array<$quantity,$unit_id,$purchase_price,$product_id>
+     * @param array{quantity: float|int, unit_id?: int, purchase_price?: float|int, product_id?: int} $fields
      */
-    public function procurementStockEntry( ProcurementProduct $product, $fields )
+    public function procurementStockEntry( ProcurementProduct $product, array $fields ): array
     {
         $history = $this->stockAdjustment( ProductHistory::ACTION_ADDED, [
             'unit_id' => $product->unit_id,
@@ -1856,8 +1885,8 @@ class ProductService
      * Get a specific product using the
      * provided argument & identifier
      *
-     * @param string argument
-     * @param string|int identifier
+     * @param  string          $argument   Argument
+     * @param  string|int|null $identifier Identifier
      * @return Product
      */
     public function getProductUsingArgument( $argument = 'id', $identifier = null )
@@ -1884,11 +1913,10 @@ class ProductService
      * Create a variation for a
      * specified parent product
      *
-     * @param Product parent
-     * @param array fields
-     * @return array
+     * @param Product $parent Parent product
+     * @param array   $fields Fields
      */
-    public function createProductVariation( Product $parent, $fields )
+    public function createProductVariation( Product $parent, array $fields ): array
     {
         $product = new Product;
 
@@ -2175,8 +2203,7 @@ class ProductService
      * or throw an exception if the product
      * doesn't exist.
      *
-     * @param  string  $sku
-     * @return Product
+     * @return Collection<Product>
      *
      * @throws NotFoundException
      */
@@ -2364,22 +2391,22 @@ class ProductService
      *
      * @return string The generated PLU code
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function generateScalePLU( int $productId, int $unitQuantityId ): string
     {
         $product = Product::with( 'category.scaleRange' )->find( $productId );
 
         if ( ! $product ) {
-            throw new \Exception( __( 'Product not found.' ) );
+            throw new Exception( __( 'Product not found.' ) );
         }
 
         if ( ! $product->category ) {
-            throw new \Exception( __( 'Product must have a category to generate PLU code.' ) );
+            throw new Exception( __( 'Product must have a category to generate PLU code.' ) );
         }
 
         if ( ! $product->category->scaleRange ) {
-            throw new \Exception(
+            throw new Exception(
                 sprintf(
                     __( 'Category "%s" does not have a PLU range assigned.' ),
                     $product->category->name
@@ -2416,7 +2443,7 @@ class ProductService
      * @param  int|null $productLength Override product code length
      * @return string   Formatted PLU code
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function validateAndFormatPLU( string $plu, ?int $productLength = null ): string
     {
@@ -2429,12 +2456,12 @@ class ProductService
         $plu = preg_replace( '/[^0-9]/', '', $plu );
 
         if ( empty( $plu ) ) {
-            throw new \Exception( __( 'PLU code cannot be empty.' ) );
+            throw new Exception( __( 'PLU code cannot be empty.' ) );
         }
 
         // Check if PLU is numeric
         if ( ! ctype_digit( $plu ) ) {
-            throw new \Exception( __( 'PLU code must contain only digits.' ) );
+            throw new Exception( __( 'PLU code must contain only digits.' ) );
         }
 
         // Pad with zeros to match the configured length
@@ -2442,7 +2469,7 @@ class ProductService
 
         // Check if PLU length matches configured length
         if ( strlen( $plu ) > $productLength ) {
-            throw new \Exception(
+            throw new Exception(
                 sprintf(
                     __( 'PLU code is too long. Maximum length is %d digits.' ),
                     $productLength
@@ -2465,5 +2492,124 @@ class ProductService
         }
 
         return ! $query->exists();
+    }
+
+    /**
+     * Map the frontend products payload into a normalized
+     * array ready to be stored as ProductAdjustmentItem rows.
+     */
+    public function buildAdjustmentItems( array $products ): array
+    {
+        return collect( $products )->map( function ( $rawProduct ) {
+            $product = Product::find( $rawProduct[ 'id' ] );
+
+            return [
+                'product_id' => $rawProduct[ 'id' ],
+                'product_name' => $product->name,
+                'unit_id' => $rawProduct[ 'adjust_unit' ][ 'unit_id' ],
+                'unit_name' => $rawProduct[ 'adjust_unit' ][ 'unit' ][ 'name' ] ?? '',
+                'unit_price' => $rawProduct[ 'adjust_unit' ][ 'sale_price' ] ?? 0,
+                'quantity' => $rawProduct[ 'adjust_quantity' ],
+                'adjust_action' => $rawProduct[ 'adjust_action' ],
+                'description' => $rawProduct[ 'adjust_reason' ] ?? '',
+                'procurement_product_id' => $rawProduct[ 'procurement_product_id' ] ?? null,
+            ];
+        } )->toArray();
+    }
+
+    /**
+     * Create a draft stock adjustment batch with its line items.
+     * No stock quantities are modified at this stage.
+     */
+    public function createAdjustmentDraft( array $products, ?string $title = '', string $description = '' ): ProductAdjustment
+    {
+        $adjustment = ProductAdjustment::create( [
+            'author_id' => Auth::id(),
+            'title' => $title ?: $this->generateAdjustmentTitle(),
+            'status' => ProductAdjustment::STATUS_DRAFT,
+            'description' => $description,
+        ] );
+
+        $items = $this->buildAdjustmentItems( $products );
+
+        foreach ( $items as $item ) {
+            ProductAdjustmentItem::create( array_merge( $item, [
+                'adjustment_id' => $adjustment->id,
+            ] ) );
+        }
+
+        return $adjustment->load( 'items' );
+    }
+
+    public function generateAdjustmentTitle( ?ProductAdjustment $adjustment = null ): string
+    {
+        if ( $adjustment instanceof ProductAdjustment && $adjustment->title ) {
+            return sprintf( __( 'Stock Adjustment #%s' ), $adjustment->id );
+        } else {
+            $latestAdjustment = ProductAdjustment::latest()->first();
+            $nextNumber = $latestAdjustment ? $latestAdjustment->id + 1 : 1;
+
+            return sprintf( __( 'Stock Adjustment #%s' ), $nextNumber );
+        }
+    }
+
+    /**
+     * Replace all items of an existing draft adjustment.
+     */
+    public function updateAdjustmentDraft( ProductAdjustment $adjustment, array $products, ?string $title = '', string $description = '' ): ProductAdjustment
+    {
+        $adjustment->update( [
+            'title' => $title ?: $this->generateAdjustmentTitle( $adjustment ),
+            'description' => $description,
+        ] );
+
+        $adjustment->items()->delete();
+
+        $items = $this->buildAdjustmentItems( $products );
+
+        foreach ( $items as $item ) {
+            ProductAdjustmentItem::create( array_merge( $item, [
+                'adjustment_id' => $adjustment->id,
+            ] ) );
+        }
+
+        return $adjustment->load( 'items' );
+    }
+
+    /**
+     * Execute a draft adjustment: apply all stock changes and
+     * mark the batch as performed.
+     */
+    public function executeAdjustmentDraft( ProductAdjustment $adjustment ): array
+    {
+        if ( $adjustment->status !== ProductAdjustment::STATUS_DRAFT ) {
+            throw new NotAllowedException( __( 'Only draft adjustments can be executed.' ) );
+        }
+
+        $results = [];
+
+        foreach ( $adjustment->items as $item ) {
+            $results[] = $this->stockAdjustment( $item->adjust_action, [
+                'unit_price' => $item->unit_price,
+                'unit_id' => $item->unit_id,
+                'procurement_product_id' => $item->procurement_product_id,
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                'description' => $item->description ?? '',
+            ] );
+        }
+
+        $adjustment->update( [ 'status' => ProductAdjustment::STATUS_PERFORMED ] );
+
+        return $results;
+    }
+
+    public function getAdjustmentLabel( string $label ): string
+    {
+        return match ( $label ) {
+            ProductAdjustment::STATUS_DRAFT => __( 'Draft' ),
+            ProductAdjustment::STATUS_PERFORMED => __( 'Performed' ),
+            default => __( 'Unknown' ),
+        };
     }
 }

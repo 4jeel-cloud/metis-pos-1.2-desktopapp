@@ -10,7 +10,7 @@
         </div>
         <div class="flex-auto overflow-y-auto ns-box-body">
             <div class="p-2">
-                <ns-tabs :active="active" @active="changeActiveTab( $event )">
+                <ns-tabs :active="active" @changeTab="changeActiveTab( $event )">
                     <ns-tabs-item :label="__( 'Units & Quantities' )" identifier="units-quantities">
                         <table class="table ns-table w-full" v-if="hasLoadedUnitQuantities">
                             <thead>
@@ -43,7 +43,7 @@
 </template>
 <script lang="ts">
 import { nsCurrency } from '~/filters/currency';
-import { nsHttpClient } from '~/bootstrap';
+import { nsHttpClient, nsSnackBar } from '~/bootstrap';
 import { __ } from '~/libraries/lang';
 import nsProductsConversion from './ns-products-conversion.vue';
 
@@ -76,6 +76,9 @@ export default {
                     next: result => {
                         this.unitQuantities             =   result;
                         this.hasLoadedUnitQuantities    =   true;
+                    },
+                    error: error => {
+                        nsSnackBar.error( error?.message || __( 'An unexpected error occurred.' ) );
                     }
                 })
         },

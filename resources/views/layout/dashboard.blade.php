@@ -34,6 +34,7 @@ if ( Auth::check() ) {
     ])
     @yield( 'layout.dashboard.header' )
     @include( 'layout._header-script' )
+    @vite([ 'resources/ts/vue-runtime.ts' ])
     @vite([ 'resources/ts/lang-loader.ts' ])
 </head>
 <body <?php echo in_array( app()->getLocale(), config( 'nexopos.rtl-languages' ) ) ? 'dir="rtl"' : "";?>>
@@ -50,7 +51,7 @@ if ( Auth::check() ) {
                             <img src="{{ asset( 'svg/metis-pos-logo-white.png' ) }}" class="w-8/12" alt="MetisPOS"/>
                             @endif
                         </div>
-                        <ul id="aside-menu">
+                        <ul id="aside-menu" class="mr-2">
                             @foreach( $menus->getMenus() as $identifier => $menu )
                                 <ns-menu identifier="{{ $identifier }}" toggled="{{ $menu[ 'toggled' ] ?? '' }}" label="{{ @$menu[ 'label' ] }}" icon="{{ @$menu[ 'icon' ] }}" href="{{ @$menu[ 'href' ] }}" notification="{{ isset( $menu[ 'notification' ] ) ? $menu[ 'notification' ] : 0 }}" id="menu-{{ $identifier }}">
                                     @if ( isset( $menu[ 'childrens' ] ) )

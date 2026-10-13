@@ -73,7 +73,9 @@ export default {
         async handleSaved( event, activeTabIdentifier, field ) {
             this.form.tabs[ activeTabIdentifier ].fields.filter( __field => {
                 if ( __field.name === field.name && event.data.entry ) {
-                    __field.options.push({
+                    const options = Array.isArray( __field.options ) ? __field.options : __field.options.search.options;
+
+                    options.push({
                         label: event.data.entry[ this.optionAttributes.label ],
                         value: event.data.entry[ this.optionAttributes.value ]
                     });
@@ -272,6 +274,7 @@ export default {
                     <div :class="form.main.disabled ? 'disabled' : form.main.errors.length > 0 ? 'error' : 'primary'" class="input-group flex border rounded overflow-hidden">
                         <input v-model="form.main.value" 
                             @keydown.enter="submit()"
+                            :name="form.main.name"
                             @keypress="formValidation.checkField( form.main, extractedForm, extractedFormLabels )"
                             @blur="formValidation.checkField( form.main, extractedForm, extractedFormLabels )" 
                             @change="formValidation.checkField( form.main, extractedForm, extractedFormLabels )" 

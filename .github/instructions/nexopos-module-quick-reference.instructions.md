@@ -77,13 +77,12 @@ class YourModuleServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // ...
     }
 
     public function boot(): void
     {
-        $this->loadViewsFrom(__DIR__ . '/../Resources/Views', 'YourModule');
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
+        // ...
     }
 }
 ```
@@ -150,44 +149,80 @@ declare const nsPromptPopup: any;
 
 ## vite.config.js Template
 
-```javascript
-import { defineConfig } from 'vite';
-import laravel from 'laravel-vite-plugin';
-import vuePlugin from '@vitejs/plugin-vue';
-import tailwindcss from '@tailwindcss/vite';
-import path from 'node:path';
+Always use the shared NexoPOS Vue runtime so the module does not ship a second Vue copy. Prefer real `.vue` SFCs and `import { ref } from 'vue'`.
 
-export default defineConfig({
-    base: '/',
-    plugins: [
-        vuePlugin(),
-        laravel({
-            hotFile: 'Public/hot',
-            input: [
-                'Resources/css/style.css',
-                'Resources/ts/main.ts',
-            ],
-            refresh: ['Resources/**']
-        }),
-        tailwindcss(),
+```javascript
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { defineNexoPOSModuleConfig } from '../../resources/vite-nexopos-module.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default defineNexoPOSModuleConfig({
+    dirname: __dirname,
+    inputs: [
+        'Resources/css/style.css',
+        'Resources/ts/main.ts',
     ],
-    resolve: {
-        alias: {
-            '@': path.resolve(__dirname, '../../resources/ts'),
-        }
-    },
-    build: {
-        outDir: 'Public/build',
-        manifest: true,
-        rollupOptions: {
-            input: [
-                './Resources/css/style.css',
-                './Resources/ts/main.ts',
-            ],
-        }
-    }
+    port: 3335,
 });
 ```
+
+### Dashboard Vue mount (required for `#dashboard-content`)
+
+Core mounts `nsDashboardContent = createApp({})` on `#dashboard-content` and uses that node’s HTML as the template. **Do not** nest `createApp()` / `nsCreateApp().mount()` inside it — the UI will paint but **reactivity and clicks die**.
+
+**Dashboard page entry** (`Resources/ts/main.ts`, footer inject before `app-init`):
+
+```typescript
+import Page from './components/Page.vue';
+
+declare const nsExtraComponents: Record<string, unknown>;
+
+nsExtraComponents['example-module-page'] = Page;
+```
+
+```blade
+<div id="dashboard-content" class="…">
+    <example-module-page></example-module-page>
+</div>
+```
+
+### Standalone page only (no `#dashboard-content`)
+
+```typescript
+import { nsCreateApp } from 'vue';
+import Page from './components/Page.vue';
+
+nsCreateApp(Page).mount('#example-module-app');
+```
+
+### Module Tailwind (required prefix)
+
+```css
+/* Resources/css/style.css — pick a short stable prefix from the module name */
+@import "tailwindcss" prefix(foo);
+```
+
+Markup: prefix **first**, then variants, then utility:
+
+```html
+<div class="foo:flex foo:md:grid-cols-2 foo:hover:underline">
+  <!-- if using dark + sm: foo:dark:sm:bg-box-background -->
+</div>
+```
+
+Do not prefix core hooks (`ns-button`, `ns-box`). Prefer semantic tokens (`foo:bg-box-background`, `foo:text-fontcolor`). Bridge those roles in `@theme` so they compile under the prefix.
+
+**Buttons:** use `<ns-button type="info">` or a `.ns-button.info` **wrapper** with an inner `button`/`a` (module owns padding). Never `<a class="ns-button info">`.
+
+**Typography:** `foo:text-fontcolor` for titles/body; `foo:text-fontcolor-soft` for sublines/descriptions.
+
+**Loading:** sized `<ns-spinner size="12" border="4" />`; optional label **below**; on error, replace spinner with a message + retry.
+
+**Active fills:** `bg-*-secondary` + `text-white` — never `bg-*-primary` as a solid active background.
+
+Agent detail: `.agents/skills/create-nexopos-module/references/dashboard-vue-mounting.md`
 
 ## API Controller Template
 
@@ -212,12 +247,14 @@ class YourController extends Controller
 
 ## API Routes Template
 
+Route should not be prefixed with "api" as NexoPOS already prefix all api.php files routes with "api".
+
 ```php
 <?php
 use Illuminate\Support\Facades\Route;
 use Modules\YourModule\Http\Controllers\YourController;
 
-Route::prefix('api/your-module')->middleware(['auth:sanctum'])->group(function () {
+Route::prefix('your-module')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/data', [YourController::class, 'index']);
     Route::post('/data', [YourController::class, 'store']);
 });

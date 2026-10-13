@@ -7,7 +7,7 @@
             </div>
         </div>
         <div class="p-1 ns-box-body">
-            <ns-tabs @active="setActiveTab( $event )" :active="activeTab">
+            <ns-tabs @changeTab="setActiveTab( $event )" :active="activeTab">
                 <ns-tabs-item 
                     :label="__( 'Apply A Coupon' )" 
                     padding="p-2"
@@ -114,6 +114,10 @@ import { __ } from "~/libraries/lang";
 import nsPosCustomerSelectPopupVue from './ns-pos-customer-select-popup.vue';
 import nsNotice from '~/components/ns-notice.vue';
 import { ref } from "vue";
+import {
+    cartSatisfiesCouponCategoryRestrictions,
+    cartSatisfiesCouponProductRestrictions,
+} from '~/libraries/coupon-eligibility';
 
 export default {
     name: 'ns-pos-coupons-load-popup',
@@ -155,6 +159,9 @@ export default {
                         next: ( coupon ) => {
                             this.coupon     =   coupon;
                             this.apply();
+                        },
+                        error: error => {
+                            nsSnackBar.error( error?.message || __( 'An unexpected error occurred.' ) );
                         }
                     })
             }
@@ -200,26 +207,12 @@ export default {
                     return nsSnackBar.error( __( 'The coupon is out from validity date range.' ) );
                 }
 
-                const requiredProducts      =   this.coupon.products;
-
-                if (
-                    requiredProducts.length > 0
-                ) {
-                    const productIds    =   requiredProducts.map( p => p.product_id );
-                    if ( this.order.products.filter( p => productIds.includes( p.product_id ) ).length === 0 ) {
-                        return nsSnackBar.error( __( 'This coupon requires products that aren\'t available on the cart at the moment.' ) );
-                    }
+                if ( ! cartSatisfiesCouponProductRestrictions( this.coupon, this.order.products ) ) {
+                    return nsSnackBar.error( __( 'This coupon only applies when every product in the cart is eligible.' ) );
                 }
 
-                const requiredCategories      =   this.coupon.categories;
-
-                if (
-                    requiredCategories.length > 0
-                ) {
-                    const categoriesIds    =   requiredCategories.map( p => p.category_id );
-                    if ( this.order.products.filter( p => categoriesIds.includes( p.$original().category_id ) ).length === 0 ) {
-                        return nsSnackBar.error( __( 'This coupon requires products that belongs to specific categories that aren\'t included at the moment.' ).replace( '%s', ) );
-                    }
+                if ( ! cartSatisfiesCouponCategoryRestrictions( this.coupon, this.order.products ) ) {
+                    return nsSnackBar.error( __( 'This coupon only applies when every product belongs to an eligible category.' ) );
                 }
 
                 let finalCoupon    =   {

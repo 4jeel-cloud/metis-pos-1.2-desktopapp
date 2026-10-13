@@ -2,16 +2,17 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Collection;
 
 /**
- * @property int            $total_stores
- * @property string         $description
- * @property bool           $locked
- * @property \Carbon\Carbon $updated_at
+ * @property int    $total_stores
+ * @property string $description
+ * @property bool   $locked
+ * @property Carbon $updated_at
  */
 class Role extends NsRootModel
 {
@@ -37,7 +38,7 @@ class Role extends NsRootModel
     const STORECASHIER = 'nexopos.store.cashier';
 
     /**
-     * @var string STOREDRIVER store role with purchasing capacity
+     * @var string STORECUSTOMER store role with purchasing capacity
      */
     const STORECUSTOMER = 'nexopos.store.customer';
 
@@ -45,11 +46,6 @@ class Role extends NsRootModel
      * @var string USER base role with no or less permissions
      */
     const USER = 'user';
-
-    /**
-     * We're introducing driver role
-     */
-    const DRIVER = 'nexopos.driver';
 
     protected $cats = [
         'locked' => 'boolean',

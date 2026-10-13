@@ -53,7 +53,7 @@ class CrudController extends DashboardController
         $resource->allowedTo( 'delete' );
 
         $modelClass = $resource->getModel();
-        $model = $modelClass::find( $id );
+        $model = $resource->findEntry( $id );
 
         if ( ! $model instanceof $modelClass ) {
             throw new NotFoundException( __( 'Unable to delete an entry that no longer exists.' ) );
@@ -301,7 +301,7 @@ class CrudController extends DashboardController
 
         if ( $resource instanceof CrudService ) {
             return $resource->getFormConfig(
-                entry: $resource->getModel()::find( $id )
+                entry: $id === null ? null : $resource->findEntry( $id )
             );
         }
 
@@ -446,5 +446,38 @@ class CrudController extends DashboardController
         }
 
         throw new NotFoundException( __( 'The requested file cannot be downloaded or has already been downloaded.' ) );
+    }
+
+    public function getResource( string $identifier, Request $request )
+    {
+        $crudClass = Hook::filter( 'ns-crud-resource', $identifier );
+
+        /**
+         * Let's check it the resource has a method to retrieve an item
+         *
+         * @var CrudService
+         */
+        $resource = new $crudClass;
+
+        $resource->allowedTo( 'read' );
+
+        $model = $resource->getModel();
+        $entry = $resource->findEntry( $request->route( 'id' ) );
+
+        if ( $entry instanceof $model ) {
+            if ( $request->query( 'with-relations' ) ) {
+                $relationExploded = explode( ',', $request->query( 'with-relations' ) );
+
+                foreach ( $relationExploded as $relation ) {
+                    if ( method_exists( $model, $relation ) ) {
+                        $entry->$relation;
+                    }
+                }
+            }
+
+            return $entry;
+        } else {
+            throw new NotFoundException( __( 'Unable to retrieve the item. The requested entry does not exist.' ) );
+        }
     }
 }
