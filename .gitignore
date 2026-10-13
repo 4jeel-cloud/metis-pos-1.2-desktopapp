@@ -1,5 +1,14 @@
 node_modules/
 vendor/
+modules/*
+!modules/.temp
+modules/.temp/*
+!modules/index.html
+public/modules/*
+!public/modules/index.html
+public/modules-lang/*
+!public/modules-lang/index.html
+storage/module.zip
 .hot
 public/hot
 public/build/
