@@ -144,7 +144,7 @@ class TransactionService
             $reflection->delete();
 
             /**
-             * We'll instruct NexoPOS to perform
+             * We'll instruct MetisPOS to perform
              * a backend jobs to update the report.
              */
             ShouldRefreshReportEvent::dispatch( $transactionHistory->created_at );

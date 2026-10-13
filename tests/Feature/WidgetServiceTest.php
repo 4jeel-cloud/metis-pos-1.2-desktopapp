@@ -142,7 +142,7 @@ class WidgetServiceTest extends TestCase
     }
 
     /**
-     * The dashboard exposes the My NexoPOS invite widget to eligible users.
+     * The dashboard exposes the My MetisPOS invite widget to eligible users.
      */
     public function test_widget_layouts_are_normalized(): void
     {
@@ -196,7 +196,7 @@ class WidgetServiceTest extends TestCase
         $widget = $widgets->firstWhere( 'class-name', MyNexoPosWidget::class );
 
         $this->assertNotNull( $widget );
-        $this->assertSame( 'My NexoPOS', $widget->name );
+        $this->assertSame( 'My MetisPOS', $widget->name );
         $this->assertSame( 'nsMyNexoPosWidget', $widget->{'component-name'} );
         $this->assertSame( 'manage.modules', $widget->instance->getPermission() );
         $this->assertIsArray( $widget->data );

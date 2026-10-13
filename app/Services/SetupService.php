@@ -168,7 +168,7 @@ class SetupService
         ] );
 
         /**
-         * NexoPOS uses Sanctum, we're making sure to publish the package.
+         * MetisPOS uses Sanctum, we're making sure to publish the package.
          */
         Artisan::call( 'vendor:publish', [
             '--force' => true,

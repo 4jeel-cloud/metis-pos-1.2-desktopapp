@@ -11,7 +11,7 @@ class UpdateSettingsTool extends Tool
 {
     public string $name = 'update_settings';
 
-    public string $description = 'Updates NexoPOS configuration settings via ns()->option->set(key, value).';
+    public string $description = 'Updates MetisPOS configuration settings via ns()->option->set(key, value).';
 
     public function schema( JsonSchema $schema ): array
     {

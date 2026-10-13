@@ -1488,7 +1488,7 @@ class ModulesService
             }
 
             /**
-             * Check if the current NexoPOS version meets
+             * Check if the current MetisPOS version meets
              * the minimum version required by the module
              */
             if (

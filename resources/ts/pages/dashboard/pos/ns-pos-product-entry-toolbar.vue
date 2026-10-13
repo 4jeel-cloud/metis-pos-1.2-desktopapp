@@ -193,7 +193,7 @@ export default {
 		inviteToMyNexoPOSConnexion() {
 			nsNotice.info(
 				__('Authentication Required'),
-				__('You need to connect your installation to My NexoPOS for using websocket features.'),
+				__('You need to connect your installation to My MetisPOS for using websocket features.'),
 				{
 					actions: {
 						close: { type: 'info', label: __('No thanks') },

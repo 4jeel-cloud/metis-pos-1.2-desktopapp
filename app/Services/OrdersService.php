@@ -79,7 +79,7 @@ class OrdersService
     }
 
     /**
-     * Create an order on NexoPOS.
+     * Create an order on MetisPOS.
      *
      * @param  array      $fields
      * @param  Order|null $order  (optional)

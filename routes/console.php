@@ -105,7 +105,7 @@ if ( Helper::installed() ) {
     }
 
     /**
-     * Will check daily if a new NexoPOS version is available
+     * Will check daily if a new MetisPOS version is available
      * on GitHub and store the result as an option.
      */
     Schedule::job( new CheckForUpdatesJob )->dailyAt( '08:00' );

@@ -82,7 +82,7 @@ export function nsRegisterComponentsOnApp(
 }
 
 /**
- * Create a Vue application that always uses the shared NexoPOS Vue runtime.
+ * Create a Vue application that always uses the shared MetisPOS Vue runtime.
  * Optionally registers core and extra components so SFCs can use them as tags.
  */
 export function nsCreateApp(

@@ -17,7 +17,7 @@ use App\Events\RenderSignUpFooterEvent;
                         <img class="w-32" src="{{ asset( 'svg/metis-pos-logo.png' ) }}" alt="MetisPOS">
                     </a>
                     @else
-                    <img src="{{ ns()->option->get( 'ns_store_square_logo' ) }}" alt="NexoPOS">
+                    <img src="{{ ns()->option->get( 'ns_store_square_logo' ) }}" alt="MetisPOS">
                     @endif
                 </div>
                 <ns-register></ns-register>

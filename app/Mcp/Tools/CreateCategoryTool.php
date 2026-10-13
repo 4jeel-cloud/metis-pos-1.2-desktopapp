@@ -12,7 +12,7 @@ class CreateCategoryTool extends Tool
 {
     public string $name = 'create_product_category';
 
-    public string $description = 'Create a new product category in NexoPOS.';
+    public string $description = 'Create a new product category in MetisPOS.';
 
     public function schema( JsonSchema $schema ): array
     {

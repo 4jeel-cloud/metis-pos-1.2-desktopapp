@@ -393,14 +393,14 @@ class GenerateReportTool extends Tool
 
     private function storeDetails(): array
     {
-        $storeName = (string) ns()->option->get( 'ns_store_name', 'NexoPOS' );
+        $storeName = (string) ns()->option->get( 'ns_store_name', 'MetisPOS' );
         $address = (string) ns()->option->get( 'ns_store_address', '' );
         $phone = (string) ns()->option->get( 'ns_store_phone', '' );
         $email = (string) ns()->option->get( 'ns_store_email', '' );
         $contact = collect( [$phone, $email] )->filter()->implode( ' | ' );
 
         return [
-            'name' => $storeName ?: 'NexoPOS',
+            'name' => $storeName ?: 'MetisPOS',
             'address' => $address ?: 'Store address not configured',
             'contact' => $contact ?: 'Store contact not configured',
         ];

@@ -6,7 +6,7 @@ const validExportName = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
 /**
  * Vite plugin that rewrites every `import … from 'vue'` in a module build to
- * the shared NexoPOS Vue runtime exposed by resources/ts/vue-runtime.ts
+ * the shared MetisPOS Vue runtime exposed by resources/ts/vue-runtime.ts
  * (`window.ns.vue` / `window.NexoPOSVue`).
  *
  * Modules keep normal Vue SFC + `import { createApp, ref } from 'vue'` DX while
@@ -36,7 +36,7 @@ const runtime = globalThis.ns?.vue ?? globalThis.NexoPOSVue;
 
 if (!runtime) {
     throw new Error(
-        "The NexoPOS Vue runtime is unavailable. Ensure resources/ts/vue-runtime.ts is loaded (via the host layout) before module assets."
+        "The MetisPOS Vue runtime is unavailable. Ensure resources/ts/vue-runtime.ts is loaded (via the host layout) before module assets."
     );
 }
 

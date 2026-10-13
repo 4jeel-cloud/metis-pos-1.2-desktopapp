@@ -282,10 +282,10 @@ class MarketplaceService
         if ( session()->has( 'marketplace_auth_redirect_url' ) ) {
             $redirectUrl = session()->pull( 'marketplace_auth_redirect_url' );
 
-            return redirect( $redirectUrl )->with( 'success', __( 'Successfully connected to My NexoPOS.' ) );
+            return redirect( $redirectUrl )->with( 'success', __( 'Successfully connected to My MetisPOS.' ) );
         }
 
-        return redirect( route( ns()->routeName( 'ns.dashboard.modules-marketplace' ) ) )->with( 'success', __( 'Successfully connected to My NexoPOS.' ) );
+        return redirect( route( ns()->routeName( 'ns.dashboard.modules-marketplace' ) ) )->with( 'success', __( 'Successfully connected to My MetisPOS.' ) );
     }
 
     public function addToCart( int|string $productId )
@@ -460,7 +460,7 @@ class MarketplaceService
                 ns()->option->delete( 'mynexopos_refresh_token' );
 
                 ns()->notification->create(
-                    title: __( 'My NexoPOS: Authentication Failed' ),
+                    title: __( 'My MetisPOS: Authentication Failed' ),
                     description: sprintf( __( 'We\'re unable to retrieve the user details from my.nexopos.com. %s.' ), $parsedResponse ),
                     url: route( 'ns.dashboard.modules-list' ),
                     identifier: 'marketplace.authentication.feedback'
@@ -472,7 +472,7 @@ class MarketplaceService
             return true;
         } catch ( Exception $exception ) {
             ns()->notification->create(
-                title: __( 'My NexoPOS: Authentication Failed' ),
+                title: __( 'My MetisPOS: Authentication Failed' ),
                 description: sprintf( __( 'An unexpected error occured: %s.' ), $exception->getMessage() ),
                 url: route( 'ns.dashboard.modules-list' ),
                 identifier: 'marketplace.authentication.feedback'
