@@ -34,4 +34,16 @@ const pngBuffers = await Promise.all(
 
 const buf = await pngToIco(pngBuffers);
 writeFileSync(outIco, buf);
-console.log(`Generated ${sizes.join('/')}px ICO at ${outIco}`);
+
+// electron-builder's icon tooling for Linux/macOS needs a PNG (or ICNS),
+// so also emit a 512x512 PNG used as build/icon.
+const outPng = join(outDir, 'icon.png');
+await sharp(source)
+  .resize(512, 512, {
+    fit: 'contain',
+    background: { r: 0, g: 0, b: 0, alpha: 0 },
+  })
+  .png()
+  .toFile(outPng);
+
+console.log(`Generated ${sizes.join('/')}px ICO at ${outIco} and 512px PNG at ${outPng}`);

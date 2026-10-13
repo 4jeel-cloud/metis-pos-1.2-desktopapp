@@ -31,7 +31,7 @@
     "appId": "com.metis-pos.app",
     "productName": "MetisPOS",
     "copyright": "Copyright (c) 2026 MetisPOS",
-    "icon": "build/icon",
+    "icon": "build/icon.png",
     "directories": {
       "output": "dist-electron"
     },
@@ -42,6 +42,8 @@
       "build/icon.ico",
       "artisan",
       "public/**/*",
+      "!public/lang",
+      "!public/storage",
       "public/build/assets/**/*",
       "config/**/*",
       "resources/views/**/*",
@@ -67,6 +69,8 @@
       "build/icon.ico",
       "artisan",
       "public/**/*",
+      "!public/lang",
+      "!public/storage",
       "config/**/*",
       "resources/**/*",
       "app/**/*",
@@ -105,6 +109,7 @@
         }
       ],
       "category": "Office",
+      "syncDesktopName": true,
       "artifactName": "metis-pos-${version}-${arch}.${ext}"
     },
     "win": {
@@ -178,6 +183,7 @@
   "name": "metis-pos",
   "version": "1.0.0",
   "description": "MetisPOS - Point of Sale System",
+  "desktopName": "metis-pos.desktop",
   "homepage": "https://metis-pos.com",
   "author": "MetisPOS <support@metis-pos.com>",
   "license": "GPL-3.0",
