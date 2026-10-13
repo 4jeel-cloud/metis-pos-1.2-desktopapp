@@ -6,6 +6,32 @@ MetisPOS is a fork of [NexoPOS](https://github.com/Blair2004/NexoPOS) by Blair20
 
 ---
 
+## [1.0.1] — 2026-10-13
+
+Security and installer hardening release. First-run setup now succeeds on read-only installs and no shared default credentials exist.
+
+### Security
+- **Resolved all 29 composer security advisories** across 6 packages: `dompdf` 3.1.5 → 3.1.6, `guzzlehttp/guzzle` 7.12.3 → 7.15.5, `laravel/framework` 12.62.0 → 12.69.3, `league/commonmark` 2.8.2 → 2.10.3, `league/flysystem` 3.35.1 → 3.36.0, `phpoffice/phpspreadsheet` 5.8.0 → 5.10.0. `composer audit --locked` reports **0 advisories**.
+- **Removed the shared default admin password** (`metisadmin`). Each install now generates a unique 16-character admin password (crypto-random), shows it once in a dialog after setup, and prompts the user to change it after first login.
+- Confirmed server hardening: PHP binds to `127.0.0.1` only, `APP_DEBUG=false`, `TELESCOPE_ENABLED=false`, and `APP_KEY` is unique per install (crypto-random, generated on first run).
+
+### Fixed
+- **First-run on read-only installs** (e.g. `/opt/MetisPOS` under a `.deb`): removed `realpath()` from `config/view.php` compiled-view path so Blade cache resolution works before `storage/framework/views` exists.
+- **SQLite bootstrap guard**: `app/Providers/AppServiceProvider.php` only auto-creates `database/database.sqlite` when the unresolved DB path points to the bundled tree — no more `Permission denied` on read-only bundles.
+- **Setup skips bundle writes**: `app/Services/SetupService.php::runMigration` no longer runs `vendor:publish` / `ns:translate --symlink` in desktop mode (both wrote into the read-only bundle). Sanctum's table ships with the core migrations.
+- **DB-wipe paths hardened**: `SetupService` and `ResetService` use the resolved SQLite config path instead of always the bundled `database/database.sqlite`.
+- **Visible setup errors**: the install failure dialog now surfaces the process `stderr` under a "Details" section so first-run errors are diagnosable.
+- `main.cjs` pulled the missing `crypto` import for key/password generation.
+
+### Changed
+- **Linux installers build from a clean tree**: icons are regenerated (`gen:icon.mjs`) before packing so `build/icon.png` always exists; installers no longer embed machine-specific `public/storage` symlinks. Verified clean `npm run dist:linux` → 170 MB `.deb` + 212 MB AppImage.
+
+### Verification
+- Full first-run (migrations + `ns:setup`) validated end-to-end on a read-only bundle snapshot with a fresh user data directory; seeds: 1 admin (bcrypt), 5 roles, 134 permissions, store `MetisPOS`.
+- PHPUnit suite: **129 passed** on the upgraded dependency tree.
+
+---
+
 ## [1.0.0] — 2026-06-13
 
 ### Added

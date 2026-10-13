@@ -55,7 +55,11 @@ further defined and clarified by project maintainers.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by contacting the project team at contact@nexopos.com. All
+reported by contacting the project maintainers via the
+[GitHub issues page](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/issues)
+(for behavior issues) or the
+[private security report form](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/security/advisories/new)
+(for security-sensitive complaints). All
 complaints will be reviewed and investigated and will result in a response that
 is deemed necessary and appropriate to the circumstances. The project team is
 obligated to maintain confidentiality with regard to the reporter of an incident.

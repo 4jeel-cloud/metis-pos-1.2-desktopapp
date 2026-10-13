@@ -28,20 +28,50 @@
 |----------|------|------|
 | Windows x64 | Installer (recommended) | [metis-pos-1.0.0-x64.exe](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases/download/v1.0.0/metis-pos-1.0.0-x64.exe) |
 | Windows x64 | Portable (no install needed) | [metis-pos-1.0.0-x64-portable.exe](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases/download/v1.0.0/metis-pos-1.0.0-x64-portable.exe) |
+| Linux x64 | `.deb` (Debian/Ubuntu) | [on the releases page](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases) as `metis-pos-1.0.0-amd64.deb` |
+| Linux x64 | AppImage (portable) | [on the releases page](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases) as `metis-pos-1.0.0-x86_64.AppImage` |
+
+> The release workflow builds Windows **and** Linux artifacts on every `v*` tag push. If an artifact is missing from a release, see [Building Installers](#building-installers) to build it locally.
 
 > All releases: [github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases)
 
-**First launch credentials:** username `admin` / password `metisadmin`
+**First launch credentials:** MetisPOS creates the admin account with a **unique, randomly generated password** per install and shows it in a dialog after setup — there is no shared default. Change it from your profile after the first login.
+
+### Install & Update (Linux `.deb`)
+
+```bash
+sudo dpkg -i metis-pos-1.0.0-amd64.deb
+```
+
+> If you previously ran an older build, reset its first-run state before launching the new one:
+>
+> ```bash
+> rm -rf ~/.config/metis-pos
+> ```
+
+### Where Is My Data?
+
+All data is local and survives reinstalls/updates:
+
+| Platform | Location |
+|---|---|
+| Linux | `~/.config/metis-pos/` (SQLite DB, `.env`, `storage/`) |
+| Windows | `%APPDATA%\metis-pos\` |
+| macOS | `~/Library/Application Support/metis-pos/` |
+
+Back up the database file (`database.sqlite`) regularly if the store data matters to you.
 
 ---
 
-## What's Fixed in v1.0.0
+## What's Fixed in v1.0.1
 
 - **No JavaScript errors on launch** — removed MySQL/Telescope dependency that caused startup crashes
 - **White logo in sidebar** — sidebar always uses the white logo (sidebar background is always dark)
-- **Persistent login sessions** — app now uses a fixed port (8686) so session cookies stay valid across restarts; no more "sign in / sign up" screen on every relaunch
+- **Persistent login sessions** — app uses a fixed port (8686) so session cookies stay valid across restarts; no more "sign in / sign up" screen on every relaunch
 - **30-day session lifetime** — you stay logged in for 30 days without re-entering credentials
 - **SQLite bundled** — fully offline, no external database required
+- **Runs on read-only installs** — first-run (`migrate` + `ns:setup`) no longer writes into the app bundle, so the `.deb` works out of the box; setup errors are now shown in the failure dialog
+- **Security hardened** — all 29 composer security advisories across 6 packages resolved (`dompdf`, `guzzle`, `laravel/framework`, `league/commonmark`, `league/flysystem`, `phpspreadsheet`); `composer audit --locked` reports 0; PHP server binds to `127.0.0.1` only; unique admin password generated per install (no hardcoded default); unique `APP_KEY` per install
 
 ---
 
@@ -57,7 +87,7 @@ MetisPOS is a **desktop Point of Sale system** built with **Laravel 12**, **Tail
 
 - **Node.js** 22.x+ ([nvm](https://github.com/nvm-sh/nvm) recommended)
 - **Composer** 2.x
-- **PHP** 8.2+ with SQLite and PDO support (or use the bundled static PHP)
+- **PHP** 8.2+ with SQLite and PDO support (or the bundled static PHP 8.5, downloaded in step 4 below)
 
 ### Setup
 
@@ -82,8 +112,8 @@ npm start
 On first launch, MetisPOS will:
 - Create a SQLite database in the user data directory
 - Run database migrations
-- Set up the admin account (username: `admin`, password: `metisadmin`)
-- Start the PHP development server on a random port
+- Set up the admin account (username: `admin`) with a unique random password that is shown once in a dialog
+- Start the bundled PHP server on the fixed port `8686` (localhost only)
 - Open the Electron window
 
 ---

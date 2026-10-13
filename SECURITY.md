@@ -1,22 +1,28 @@
-# Guideline For Reporting Vulnerability
-First of all, thank you for taking time to read this. We believe, you're considering sharing what could be a security issue that might affect every installation running MetisPOS. 
-We believe in the power of open-source and contributions of it's adherants, that's why regardless of whether your report is proven or not, it's welcome.
+# Security Policy
 
-# What Can Be Reported ?
-Basically, everything that could be a leak, that makes the system's (MetisPOS) security inefficient, anything that can expose the server (files & database) or that makes the system to be used in a manner that is out of the purpose we're aiming. 
-It can be sensitive information that are accessible without any permission restriction or any error thrown, that might expose the database structure. To ease a quick fix of those major concern, bugs (something that doesn't works as it should)
-aren't included on this, unless that bug expose the system.
+MetisPOS is a fork of [NexoPOS](https://github.com/Blair2004/NexoPOS) (GPL-3.0, copyright Blair2004) and this policy applies to the MetisPOS desktop application.
 
-# Where To Report Those Concerns
-Security vulnerabilities should be reported responsibily. We, the developers, should have enough time to either answer to the report and to provide a fix to it. According to the disponibilty and the complexity of the concern,
-we might not give an exact hint on when those will be resolved, but as must as possible, we rather don't want those to be disclosed publicly as a vulnerability, unless we haven't taken any action
-during a long period (6 months), so that anyone on the community might be aware of those and then either chose to fix or to take any relevant action.
+## Reporting a Vulnerability
 
-The concern should priorily be reported to `contact@nexopos.com`. We'll usually reply once we receive a report and we'll also share either the commit or the version to test the most recent version with the fix.
+Please **do not open a public issue** for security vulnerabilities.
 
-# Thank You
-If we haven't said that yet, we're really thankful for your consideration. Reporting this shows how much you care about our effort and would like to bring your contribution and that's really appreciated.
+Report privately via GitHub's **private vulnerability reporting** for this repository:
 
-Kind Regards.
+👉 https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/security/advisories/new
 
-Blair.
+Expect an acknowledgement within a few days. We ask that you give us time to prepare a fix and a release before the issue is disclosed publicly.
+
+## What Can Be Reported
+
+Anything that could compromise confidentiality or integrity of the local store data, leak files or the database, bypass access control, or let a local attacker control the app beyond its intended purpose. Bugs that do not expose the system are not treated as security reports.
+
+## Supported Versions
+
+| Version | Supported |
+|---------|-----------|
+| Latest release (`v*`) | ✅ receives security fixes |
+| Older releases | ❌ update to the latest release |
+
+## Dependency Security
+
+Dependency updates are tracked with Dependabot; `composer audit --locked` is expected to report **0 advisories** before any release. The app is only reachable on `127.0.0.1` and ships `APP_DEBUG=false`, with a unique `APP_KEY` and admin password generated per install.
