@@ -153,7 +153,8 @@ class ResetService
                 DB::statement( 'SET FOREIGN_KEY_CHECKS = 1' );
             }
         } else {
-            file_put_contents( database_path( 'database.sqlite' ), '' );
+            $sqlitePath = config( 'database.connections.sqlite.database', database_path( 'database.sqlite' ) );
+            file_put_contents( $sqlitePath, '' );
         }
 
         Artisan::call( 'key:generate', [ '--force' => true ] );

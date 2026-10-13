@@ -3,6 +3,7 @@ const { spawn, execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const net = require('net');
+const crypto = require('crypto');
 
 // Disable sandbox — required for PHP subprocess and preload on some Windows installs
 if (process.platform === 'win32' || !app.isPackaged) {
@@ -245,6 +246,10 @@ function getPhpEnv(port) {
 async function runSetup() {
   const { binary: phpBin, args: extensions } = getPhpConfig();
 
+  // Unique credentials per install — no shared default password.
+  const INITIAL_PASSWORD = crypto.randomBytes(12).toString('base64')
+    .replace(/[+/=]/g, '').slice(0, 16);
+
   ensureDirectories();
 
   // Create the SQLite file so PDO can connect
@@ -275,7 +280,7 @@ async function runSetup() {
       '--store_name=MetisPOS',
       '--admin_username=admin',
       '--admin_email=admin@metis-pos.com',
-      '--admin_password=metisadmin',
+      `--admin_password=${INITIAL_PASSWORD}`,
       '--language=en',
     ), {
       cwd: APP_DIR,
@@ -289,6 +294,13 @@ async function runSetup() {
   }
 
   console.log('[Setup] Setup complete.');
+  console.log(`[Setup] Initial credentials — user: admin, password: ${INITIAL_PASSWORD} (change after login)`);
+  dialog.showMessageBoxSync({
+    type: 'info',
+    title: 'MetisPOS installed',
+    message: 'Sign-in credentials',
+    detail: `Username: admin\nPassword: ${INITIAL_PASSWORD}\n\nPlease change your password after the first login.`,
+  });
 }
 
 /**
@@ -484,8 +496,10 @@ app.whenReady().then(async () => {
     try {
       await runSetup();
     } catch (err) {
+      const detail = err.stderr?.toString().trim() || err.message;
       dialog.showErrorBox('Setup Failed',
         `MetisPOS could not complete the initial setup:\n\n${err.message}\n\n` +
+        `Details:\n${detail}\n\n` +
         'Please check that PHP 8.3+ with SQLite support is available.');
       app.quit();
       return;

@@ -274,11 +274,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         /**
-         * let's create a default sqlite
-         * database. This file is not tracked by Git.
+         * Let's create a default sqlite database. This file is not
+         * tracked by Git. When an explicit DB_DATABASE path is set
+         * (e.g. the Electron desktop app redirects SQLite into a
+         * user-writable directory), the bundled file is left alone:
+         * it is read-only inside the packaged application.
          */
-        if ( ! is_file( database_path( 'database.sqlite' ) ) ) {
-            file_put_contents( database_path( 'database.sqlite' ), '' );
+        $sqliteDatabase = config( 'database.connections.sqlite.database', database_path( 'database.sqlite' ) );
+        if ( ! is_file( $sqliteDatabase ) && $sqliteDatabase === database_path( 'database.sqlite' ) ) {
+            file_put_contents( $sqliteDatabase, '' );
         }
 
         /**

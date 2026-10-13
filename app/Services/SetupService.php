@@ -92,7 +92,8 @@ class SetupService
         }
 
         // we'll empty the database
-        file_put_contents( database_path( 'database.sqlite' ), '' );
+        $sqlitePath = config( 'database.connections.sqlite.database', database_path( 'database.sqlite' ) );
+        file_put_contents( $sqlitePath, '' );
 
         $this->updateAppUrl();
         $this->updateAppDBConfiguration( $request->post() );
@@ -169,15 +170,19 @@ class SetupService
 
         /**
          * MetisPOS uses Sanctum, we're making sure to publish the package.
+         * The desktop app skips this: the bundle is read-only and the
+         * personal_access_tokens migration ships with the core migrations.
          */
-        Artisan::call( 'vendor:publish', [
-            '--force' => true,
-            '--provider' => 'Laravel\Sanctum\SanctumServiceProvider',
-        ] );
+        if ( env( 'APP_STORAGE_PATH' ) === null ) {
+            Artisan::call( 'vendor:publish', [
+                '--force' => true,
+                '--provider' => 'Laravel\Sanctum\SanctumServiceProvider',
+            ] );
 
-        Artisan::call( 'ns:translate', [
-            '--symlink' => true,
-        ] );
+            Artisan::call( 'ns:translate', [
+                '--symlink' => true,
+            ] );
+        }
 
         /**
          * we'll register all "update" migration
