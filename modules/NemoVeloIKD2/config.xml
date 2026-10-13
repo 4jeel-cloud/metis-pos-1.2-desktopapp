@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<module>
+    <namespace>NemoVeloIKD2</namespace>
+    <version>1.0</version>
+    <author>MetisPOS</author>
+    <name>Nemo veloIKD2</name>
+    <description>
+        <locale lang="en">Changed description</locale>
+    </description>
+</module>

@@ -78,8 +78,15 @@ class NexoposVueRuntimePluginTest extends TestCase
     #[Test]
     public function reference_modules_use_shared_module_vite_config(): void
     {
-        $appointmentVite = file_get_contents( base_path( 'modules/NsAppointments/vite.config.js' ) );
-        $cloudVite = file_get_contents( base_path( 'modules/CloudDeployer/vite.config.js' ) );
+        $appointmentVitePath = base_path( 'modules/NsAppointments/vite.config.js' );
+        $cloudVitePath = base_path( 'modules/CloudDeployer/vite.config.js' );
+
+        if ( ! is_file( $appointmentVitePath ) || ! is_file( $cloudVitePath ) ) {
+            $this->markTestSkipped( 'Reference modules (NsAppointments, CloudDeployer) are not installed in this checkout.' );
+        }
+
+        $appointmentVite = file_get_contents( $appointmentVitePath );
+        $cloudVite = file_get_contents( $cloudVitePath );
 
         $this->assertNotFalse( $appointmentVite );
         $this->assertNotFalse( $cloudVite );
