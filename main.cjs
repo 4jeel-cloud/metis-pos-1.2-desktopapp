@@ -35,6 +35,13 @@ function getPhpConfig() {
       if (fs.existsSync(iniPath)) {
         config.args.push('-c', bundledDir);
       }
+      // php.ini ships a relative `extension_dir = "ext"`, but PHP is spawned
+      // with CWD set to the app dir, so it would look for DLLs in <app>/ext.
+      // Point it at the bundled ext/ absolutely so pdo_sqlite always loads.
+      const extDir = path.join(bundledDir, 'ext');
+      if (fs.existsSync(extDir)) {
+        config.args.push('-d', `extension_dir=${extDir}`);
+      }
     }
     return config;
   }
