@@ -310,7 +310,7 @@ export class POS {
                                                 label: __( 'Read More' ),
                                                 onClick: ( instance ) => {
                                                     instance.close();
-                                                    window.open( 'https://my.nexopos.com/en/documentation/troubleshooting/no-default-customer', '_blank' );
+                                                    window.open( 'https://docs.metis-pos.com/en/documentation/troubleshooting/no-default-customer', '_blank' );
                                                 }
                                             }, 
                                             close: {

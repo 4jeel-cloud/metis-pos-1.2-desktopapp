@@ -187,7 +187,7 @@ class ReportService
                 ];
             }
 
-            $message = __( 'A stock operation has recently been detected, however NexoPOS wasn\'t able to update the report accordingly. This occurs if the daily dashboard reference hasn\'t been created.' );
+            $message = __( 'A stock operation has recently been detected, however MetisPOS wasn\'t able to update the report accordingly. This occurs if the daily dashboard reference hasn\'t been created.' );
 
             /**
              * @todo make sure outgoing link takes to relevant article
@@ -198,7 +198,7 @@ class ReportService
             $notification->create(
                 title: __( 'Untracked Stock Operation' ),
                 description: $message,
-                url: 'https://my.nexopos.com/en/troubleshooting/untracked-stock-operation',
+                url: 'https://docs.metis-pos.com/en/troubleshooting/untracked-stock-operation',
             )->dispatchForGroup(
                 [ Role::namespace( 'admin' ) ]
             );
@@ -377,12 +377,12 @@ class ReportService
 
     public function notifyIncorrectDashboardReport()
     {
-        $message = __( 'A stock operation has recently been detected, however NexoPOS wasn\'t able to update the report accordingly. This occurs if the daily dashboard reference hasn\'t been created.' );
+        $message = __( 'A stock operation has recently been detected, however MetisPOS wasn\'t able to update the report accordingly. This occurs if the daily dashboard reference hasn\'t been created.' );
 
         ns()->notification->create(
             title: __( 'Untracked Stock Operation' ),
             description: $message,
-            url: 'https://my.nexopos.com/en/troubleshooting/untracked-stock-operation',
+            url: 'https://docs.metis-pos.com/en/troubleshooting/untracked-stock-operation',
         )->dispatchForGroup(
             [ Role::namespace( 'admin' ) ]
         );

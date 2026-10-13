@@ -9,7 +9,7 @@ import { config } from 'dotenv';
 config(); // reads .env from the project root
 
 /**
- * NexoPOS Playwright Configuration
+ * MetisPOS Playwright Configuration
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({

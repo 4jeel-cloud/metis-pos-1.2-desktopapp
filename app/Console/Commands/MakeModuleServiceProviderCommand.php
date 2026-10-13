@@ -83,7 +83,7 @@ class MakeModuleServiceProviderCommand extends Command
                 }
             }
         } else {
-            $this->error( 'NexoPOS is not yet installed.' );
+            $this->error( 'MetisPOS is not yet installed.' );
         }
     }
 }

@@ -1,7 +1,7 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 
 /**
- * Page Object Model for the NexoPOS Dashboard (/dashboard).
+ * Page Object Model for the MetisPOS Dashboard (/dashboard).
  */
 export class TaxesPage {
     readonly page: Page;

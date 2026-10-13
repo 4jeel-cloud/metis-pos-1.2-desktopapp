@@ -14,7 +14,7 @@ $dateService    =   app()->make( DateService::class );
         window.nsExtraComponents     =   new Object;
 
         /**
-         * describe a global NexoPOS object
+         * describe a global MetisPOS object
          * @param {object} ns
          */
         window.ns   =   { nsExtraComponents };
@@ -41,7 +41,7 @@ $dateService    =   app()->make( DateService::class );
          */
         window.ns.language      =   '{{ app()->getLocale() }}';
         window.ns.langFiles     =   <?php echo json_encode( Hook::filter( 'ns.langFiles', [
-            'NexoPOS'   =>  asset( "/lang/" . app()->getLocale() . ".json" ),
+            'MetisPOS'   =>  asset( "/lang/" . app()->getLocale() . ".json" ),
         ]));?>
 
         @auth

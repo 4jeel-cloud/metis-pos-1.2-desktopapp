@@ -1,115 +1,191 @@
-[![Latest Stable Version](https://poser.pugx.org/blair2004/nexopos/v)](//packagist.org/packages/blair2004/nexopos) [![Total Downloads](https://poser.pugx.org/blair2004/nexopos/downloads)](//packagist.org/packages/blair2004/nexopos) [![Latest Unstable Version](https://poser.pugx.org/blair2004/nexopos/v/unstable)](//packagist.org/packages/blair2004/nexopos) [![License](https://poser.pugx.org/blair2004/nexopos/license)](//packagist.org/packages/blair2004/nexopos)
-
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/5265663/162700085-40ed00ca-9154-42cb-850a-ccf1c2db2d5d.png" alt="NexoPOS"/>
+  <img src="main logo.png" alt="MetisPOS Logo" width="180"/>
 </p>
 
-NexoPOS is a free point-of-sale system built using Laravel, TailwindCSS, Vue, and other open-source resources. This POS System focuses on utilities and functionalities to offer most businesses all the tools they need to manage their store more effectively. NexoPOS includes a responsive and beautiful dashboard that ease the interaction either on a smartphone, tablet, or desktop.
+<h1 align="center">MetisPOS</h1>
 
-Read Review On:
-[![Laravel News](https://user-images.githubusercontent.com/5265663/186377311-c42ddd2c-bc84-465c-a3b6-94e6df8d68bc.jpg)](https://laravel-news.com/nexopos-point-of-sale-for-laravel?utm_source=github.com&utm_medium=readme&utm_campagin=nexopos)
+<p align="center">
+  A desktop Point of Sale system — runs entirely offline, no server required.
+</p>
 
-## Demo
-Now you can create demo instances on [NexoPOS Cloud](https://cloud.nexopos.com).
+<p align="center">
+  <a href="https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases/tag/v1.0.0">
+    <img src="https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square" alt="Version"/>
+  </a>
+  <a href="https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases/tag/v1.0.0">
+    <img src="https://img.shields.io/badge/platform-Windows%20x64-brightgreen?style=flat-square&logo=windows" alt="Windows"/>
+  </a>
+  <a href="https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/blob/master/LICENSE">
+    <img src="https://img.shields.io/badge/license-GPL--3.0-orange?style=flat-square" alt="License"/>
+  </a>
+</p>
 
-[![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/blair2004/NexoPOS/tree/v5.0.x&refcode=ebdb80cb0ec7)
+---
 
-## Documentation
-All the documentation for NexoPOS can be found on [My NexoPOS](https://my.nexopos.com/en/documentation). That includes : 
+## Download
 
-- [Configuring the environment](https://my.nexopos.com/en/documentation/getting-started/configuring-the-environment)
-- [Downloading NexoPOS](https://my.nexopos.com/en/documentation/getting-started/download-and-install)
-- [Installing NexoPOS](https://my.nexopos.com/en/documentation/getting-started/installation-wizard)
-- [Rest API](https://docs.api.nexopos.com)
+| Platform | Type | Link |
+|----------|------|------|
+| Windows x64 | Installer (recommended) | [metis-pos-1.0.0-x64.exe](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases/download/v1.0.0/metis-pos-1.0.0-x64.exe) |
+| Windows x64 | Portable (no install needed) | [metis-pos-1.0.0-x64-portable.exe](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases/download/v1.0.0/metis-pos-1.0.0-x64-portable.exe) |
 
-And for developers, there are more technical tutorials that cover:
-- [Creating a module](https://my.nexopos.com/en/documentation/developpers-guides/how-to-create-a-module-for-nexopos-4-x)
-- [Create a menu for a module](https://my.nexopos.com/en/documentation/developpers-guides/how-to-create-a-menu-on-nexopos-4-x)
-- [Create a route](https://my.nexopos.com/en/documentation/developpers-guides/how-to-register-routes-for-modules)
+> All releases: [github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases](https://github.com/4jeel-cloud/metis-pos-1.2-desktopapp/releases)
 
-We've also created a video tutorial that will help you perform those easily.
+**First launch credentials:** username `admin` / password `metisadmin`
 
-[
-![image](https://user-images.githubusercontent.com/5265663/163531524-408757a8-d5a8-40b1-8e8f-c4e59e778e05.png)
-](https://www.youtube.com/watch?v=V80-hOJCywY)
+---
 
-# Get More Using Modules
-NexoPOS available on [CodeCanyon](https://codecanyon.net/item/nexopos-4x-pos-crm-inventory-manager/31188619) gives access to the premium modules marketplace. While purchasing on CodeCanyon, you get : 
+## What's Fixed in v1.0.0
 
-- $40 In credit to [My NexoPOS](https://my.nexopos.com/en/marketplace) balance.
-- Access to NexoPOS marketplace
-- Premium Support & Installation Service
-- You're eligible for customization
+- **No JavaScript errors on launch** — removed MySQL/Telescope dependency that caused startup crashes
+- **White logo in sidebar** — sidebar always uses the white logo (sidebar background is always dark)
+- **Persistent login sessions** — app now uses a fixed port (8686) so session cookies stay valid across restarts; no more "sign in / sign up" screen on every relaunch
+- **30-day session lifetime** — you stay logged in for 30 days without re-entering credentials
+- **SQLite bundled** — fully offline, no external database required
 
-## Changelog & Feature Announcement
-We frequently discuss the future of the app (while waiting, discussions are allowed). You can join the WhatsApp [group where tips](https://chat.whatsapp.com/KHWgNmfcfJy7SwJiRQTmG8) are shared on NexoPOS.
+---
 
+> **Forked from [NexoPOS](https://github.com/Blair2004/NexoPOS)** — the original POS system by Blair2004, licensed under GPL-3.0.
 
-## Support Terms
+MetisPOS is a **desktop Point of Sale system** built with **Laravel 12**, **TailwindCSS 4**, **Vue.js 3**, and **Electron**. It includes inventory management, customer management, orders, payments, reporting, and more — all running locally with a bundled PHP server and SQLite database.
 
-1 - The support on NexoPOS only applies to the information provided by the users while creating an issue. This means we won't either do the installation on your server or check an issue on your server. You're therefore invited not to post your server information while creating an issue. We'll use your explanations to reproduce your issue and therefore to solve it.
+---
 
-2 - If you would like to have dedicated support. Consider registering as a member to [My NexoPOS platform](https://my.nexopos.com/en/account/checkout/premium).
+## Quick Start (Desktop App)
 
-## Troubleshooting
-Here we list the known issues and the way around them. Not everyone is likely to face these issues, as it depends on the environment used.
+### Prerequisites
 
-- CSRF error After Installation
-Chances are when you make your installation, you'll have your website URL changed. Unfortunately, if the domain has to change, it must be clearly described on the .env file. We've written a guide that explains how to solve the [CSRF issue on NexoPOS](https://my.nexopos.com/en/documentation/troubleshooting/how-to-fix-csrf-token-mismatch-on-nexopos-4-x).
+- **Node.js** 22.x+ ([nvm](https://github.com/nvm-sh/nvm) recommended)
+- **Composer** 2.x
+- **PHP** 8.2+ with SQLite and PDO support (or use the bundled static PHP)
 
-- Error After Database Details (using `php artisan serve`)
-If you're serving the project using `php artisan serve`, after setting up the database credentials and having them validated, you might get stuck in an infinite
-loading page. 
+### Setup
 
-![screenshot-127 0 0 1_8000-2020 10 01-00_33_17](https://user-images.githubusercontent.com/5265663/94781001-17809f00-037e-11eb-9f14-3bf4427054bf.png)
-
-This is caused because during the database setup, the ".env" is updated which causes Laravel to restart the development server and therefore invalidate your session. The way around this is to refresh the page, and you'll reach the application details section.
-
-## Contribution Guidelines
-Do you plan to contribute? That's awesome. We don't have that many developers on it, so we're open to any type of contributions. If you're a developer, you'll start by forking the project and deploying that locally for further tests. Refer to the package.json file to see the available commands to build the project.
-
-**To install Node.js dependencies**
-```
+```bash
+# 1. Install JS dependencies
 npm install
+
+# 2. Install PHP dependencies
+composer install --no-scripts
+composer install
+
+# 3. Build frontend assets
+npm run build
+
+# 4. Download bundled PHP for your platform
+node scripts/download-php.mjs
+
+# 5. Run the desktop app
+npm start
 ```
 
-**To Launch The Dev Mode (Watch)**
+On first launch, MetisPOS will:
+- Create a SQLite database in the user data directory
+- Run database migrations
+- Set up the admin account (username: `admin`, password: `metisadmin`)
+- Start the PHP development server on a random port
+- Open the Electron window
+
+---
+
+## Building Installers
+
+Build distributable installers for your platform:
+
+```bash
+# Linux (AppImage + .deb)
+npm run dist:linux
+
+# Windows (.exe installer + portable)
+npm run dist:win
+
+# macOS (.dmg)
+npm run dist:mac
+
+# All platforms
+npm run dist:all
 ```
-npx vite
+
+Installers are output to `dist-electron/`.
+
+---
+
+## Development (Web Mode)
+
+For frontend-only development with hot-reload:
+
+```bash
+# Terminal 1: Start Vite dev server
+npm run dev
+
+# Terminal 2: Start Laravel dev server
+php artisan serve --port=8000
 ```
 
-**To Build The Project**
+Visit `http://127.0.0.1:8000` in your browser.
+
+---
+
+## Project Structure
+
 ```
-npx vite build
+metis-pos-app/
+├── main.cjs              # Electron main process (window, PHP server, first-run setup)
+├── preload.cjs            # Electron preload script (context bridge)
+├── vite.config.js         # Vite build configuration
+├── scripts/
+│   └── download-php.mjs   # Downloads bundled PHP binary for distribution
+├── php-binary/            # Bundled PHP binaries (gitignored, populated by download-php.mjs)
+├── dist-electron/         # Built installers (gitignored)
+├── app/                   # Laravel application code
+├── resources/             # Vue.js components, TypeScript, CSS
+├── public/                # Web root (build output in public/build/)
+├── database/              # Migrations, seeders, factories
+├── config/                # Laravel configuration
+├── routes/                # Laravel routes
+├── modules/               # Modular extensions
+├── tests/                 # PHPUnit + Playwright tests
+└── playwright/            # E2E test configuration
 ```
 
-## Star History
-Thank you for all your support over the years :).
+---
 
-[![Star History Chart](https://api.star-history.com/svg?repos=blair2004/NexoPOS&type=Date)](https://star-history.com/#blair2004/NexoPOS&Date)
+## CI / CD
 
+Three GitHub Actions workflows:
 
-## Screenshots
-The branch 4.7.x introduces the "Dark Mode" which will make working continuously with NexoPOS easier without hurting sight.
+| Workflow | Trigger | Description |
+|---|---|---|
+| `build.yml` | Push/PR to `master` | Builds frontend assets |
+| `laravel.yml` | Push/PR to `master` | Runs PHPUnit tests |
+| `build-installer.yml` | Tag push (`v*`) | Builds platform installers and uploads to GitHub Release |
 
-### Media Component
-The media components help upload images and manage them. This comes with a field that will ease assigning images to products.
-![image](https://user-images.githubusercontent.com/5265663/159091815-5b022ec6-9df4-419b-86f0-85db73ce35c5.png)
+To trigger a release build:
 
-### POS Component
-The POS is the place where sales are made and handled. The POS is made to provide everything the cashier needs to process orders quickly and easily.
-![image](https://user-images.githubusercontent.com/5265663/159092595-3b2e4371-fef4-471c-84cd-b04cb2b7c611.png)
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
-### Orders Components
-Every saved sale is listed on the orders list. From there, various operations such as opening the receipt, proceeding with a refund, and making a payment can be performed.
-![image](https://user-images.githubusercontent.com/5265663/159092684-53a0c41a-d76d-4b69-b737-4420a20b33a1.png)
+---
 
-### Products Components
-The resources that are sold are the products. The product UI has been simplified to ensure all necessary details can be added.
-![image](https://user-images.githubusercontent.com/5265663/159092753-845b930c-0b4f-4b3d-a42e-8658f74e7499.png)
+## Testing
 
-### Settings Components
-Configure how NexoPOS works. From the settings, you can configure various sections of your application including the currency, the POS features, the orders, and much more.
-![image](https://user-images.githubusercontent.com/5265663/159092979-267841bc-531d-4a27-b35f-902866fa742a.png)
+```bash
+# PHPUnit tests
+php artisan test
 
-6-99-302-183
+# E2E tests (Playwright)
+npm run test:e2e
+
+# E2E with UI
+npm run test:e2e:ui
+```
+
+---
+
+## License
+
+GNU General Public License v3.0. See [LICENSE](LICENSE).
+
+Original work copyright (c) Blair2004. Modified work copyright (c) 4jeel-cloud.

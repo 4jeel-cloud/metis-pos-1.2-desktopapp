@@ -18,7 +18,7 @@ class UpdateCommand extends Command
      *
      * @var string
      */
-    protected $description = 'An utility for updating NexoPOS and it\'s modules. Only works if the project was installed using Git.';
+    protected $description = 'An utility for updating MetisPOS and it\'s modules. Only works if the project was installed using Git.';
 
     /**
      * Create a new command instance.
@@ -46,7 +46,7 @@ class UpdateCommand extends Command
 
     private function proceedUpdateModule()
     {
-        // we need to update my.nexopos.com to support this.
+        // we need to update docs.metis-pos.com to support this.
     }
 
     /**

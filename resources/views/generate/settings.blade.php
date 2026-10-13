@@ -27,7 +27,7 @@ class {{ $className }} extends SettingsPage
 
     /**
      * A unique identifier provided to the form, 
-     * that helps NexoPOS distinguish it among other forms.
+     * that helps MetisPOS distinguish it among other forms.
      */
     const IDENTIFIER = '{{ $identifier }}';
 

@@ -84,7 +84,7 @@ describe( 'Tests Form Validation Class', () => {
     test( 'Valid Email Check', () => {
         let fields  =   [{
             label: 'Test',
-            value: 'contact@nexopos.com',
+            value: 'contact@metis-pos.com',
             name: 'field_name',
             validation: 'email'
         }];

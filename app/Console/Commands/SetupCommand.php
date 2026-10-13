@@ -20,7 +20,7 @@ class SetupCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Install NexoPOS from the command line.';
+    protected $description = 'Install MetisPOS from the command line.';
 
     private $ns_store_name;
 
@@ -70,6 +70,15 @@ class SetupCommand extends Command
         }
 
         if (
+            env( 'DB_CONNECTION' ) === 'sqlite'
+        ) {
+            if (
+                env( 'DB_DATABASE', null ) === null ||
+                env( 'DB_PREFIX', null ) === null
+            ) {
+                return $this->error( __( 'Unable to proceed, looks like the database can\'t be used.' ) );
+            }
+        } elseif (
             env( 'DB_HOST', null ) === null ||
             env( 'DB_DATABASE', null ) === null ||
             env( 'DB_USERNAME', null ) === null ||
@@ -80,7 +89,7 @@ class SetupCommand extends Command
         }
 
         if ( Helper::installed() ) {
-            return $this->error( __( 'NexoPOS is already installed.' ) );
+            return $this->error( __( 'MetisPOS is already installed.' ) );
         }
 
         $this->setupLanguage();
@@ -106,7 +115,7 @@ class SetupCommand extends Command
                 'ns_store_name' => $this->ns_store_name,
             ] );
 
-            return $this->info( 'Thank you, NexoPOS has been successfully installed.' );
+            return $this->info( 'Thank you, MetisPOS has been successfully installed.' );
         } else {
             return $this->info( 'The installation has been aborded.' );
         }
@@ -149,7 +158,7 @@ class SetupCommand extends Command
     private function setupLanguage()
     {
         while ( empty( $this->language ) ) {
-            $langIndex = $this->choice( __( 'In which language would you like to install NexoPOS ?' ), array_values( config( 'nexopos.languages' ) ) );
+            $langIndex = $this->choice( __( 'In which language would you like to install MetisPOS ?' ), array_values( config( 'nexopos.languages' ) ) );
             $this->language = array_keys( config( 'nexopos.languages' ) )[ $langIndex ];
 
             if ( strlen( $this->language ) != 2 ) {

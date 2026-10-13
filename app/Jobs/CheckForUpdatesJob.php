@@ -30,8 +30,8 @@ class CheckForUpdatesJob implements ShouldQueue
         try {
             $response = Http::withHeaders( [
                 'Accept' => 'application/vnd.github.v3+json',
-                'User-Agent' => 'NexoPOS',
-            ] )->get( 'https://api.github.com/repos/blair2004/NexoPOS/releases/latest' );
+                'User-Agent' => "MetisPOS",
+            ] )->get( 'https://api.github.com/repos/4jeel-cloud/metis-pos-1.2/releases/latest' );
 
             if ( $response->successful() ) {
                 $latestVersion = ltrim( $response->json( 'tag_name' ), 'vV' );

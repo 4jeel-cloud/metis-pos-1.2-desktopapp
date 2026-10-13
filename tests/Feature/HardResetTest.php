@@ -19,8 +19,8 @@ class HardResetTest extends TestCase
 
         $response = $this->withSession( $this->app[ 'session' ]->all() )
             ->json( 'POST', 'api/setup/configuration', [
-                'ns_store_name' => env( 'NS_RESET_APPNAME', 'NexoPOS' ),
-                'admin_email' => env( 'NS_RESET_MAIL', 'contact@nexopos.com' ),
+                'ns_store_name' => env( 'NS_RESET_APPNAME', "MetisPOS" ),
+                'admin_email' => env( 'NS_RESET_MAIL', 'contact@metis-pos.com' ),
                 'admin_username' => env( 'NS_RESET_USERNAME', 'admin' ),
                 'password' => env( 'NS_RESET_PASSWORD', 123456 ),
                 'confirm_password' => env( 'NS_RESET_PASSWORD', 123456 ),

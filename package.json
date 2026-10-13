@@ -4,17 +4,155 @@
     "node": "24.x"
   },
   "type": "module",
+  "main": "main.cjs",
   "scripts": {
     "build": "vite build",
     "dev": "vite",
     "watch": "vite build --watch",
+    "start": "electron . --no-sandbox",
+    "start:debug": "DEBUG=true electron . --no-sandbox",
     "test": "jest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui --ui-host=0.0.0.0 --ui-port=3333",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report playwright-report --host 0.0.0.0",
-    "test:e2e:codegen": "playwright/codegen.sh"
+    "test:e2e:codegen": "playwright/codegen.sh",
+    "download-php": "node scripts/download-php.mjs",
+    "clean:dist": "node -e \"const{rmSync,existsSync}=require('fs');const p='dist-electron';if(existsSync(p)){rmSync(p,{recursive:true,force:true});console.log('Cleaned '+p)}\"",
+    "gen:icon": "node scripts/gen-icon.mjs",
+    "prebuild:dist": "npm run gen:icon && npm run build",
+    "dist:linux": "npm run prebuild:dist && npm run clean:dist && node scripts/download-php.mjs linux && electron-builder --linux",
+    "dist:win": "npm run prebuild:dist && npm run clean:dist && node scripts/download-php.mjs win && electron-builder --win",
+    "dist:mac": "npm run prebuild:dist && npm run clean:dist && node scripts/download-php.mjs mac && electron-builder --mac",
+    "dist:all": "npm run clean:dist && node scripts/download-php.mjs linux && node scripts/download-php.mjs win && node scripts/download-php.mjs mac && electron-builder --linux --win --mac"
+  },
+  "build": {
+    "appId": "com.metis-pos.app",
+    "productName": "MetisPOS",
+    "copyright": "Copyright (c) 2026 MetisPOS",
+    "icon": "build/icon",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "main logo.png",
+      "build/icon.ico",
+      "artisan",
+      "public/**/*",
+      "public/build/assets/**/*",
+      "config/**/*",
+      "resources/views/**/*",
+      "resources/lang/**/*",
+      "app/**/*",
+      "bootstrap/**/*",
+      "vendor/**/*",
+      "database/migrations/**/*",
+      "database/seeders/**/*",
+      "database/factories/**/*",
+      "database/permissions/**/*",
+      "storage/**/*",
+      "routes/**/*",
+      "modules/**/*",
+      "lang/**/*",
+      "composer.json",
+      "composer.lock"
+    ],
+    "asarUnpack": [
+      "main.cjs",
+      "preload.cjs",
+      "main logo.png",
+      "build/icon.ico",
+      "artisan",
+      "public/**/*",
+      "config/**/*",
+      "resources/**/*",
+      "app/**/*",
+      "bootstrap/**/*",
+      "vendor/**/*",
+      "database/**/*",
+      "routes/**/*",
+      "modules/**/*",
+      "lang/**/*",
+      "storage/**/*",
+      "composer.json",
+      "composer.lock"
+    ],
+    "extraResources": [
+      {
+        "from": "php-binary/${os}",
+        "to": "php-binary",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Office",
+      "artifactName": "metis-pos-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "metis-pos-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "metis-pos-${version}-${arch}-portable.${ext}",
+      "requestExecutionLevel": "user",
+      "unpackDirName": "MetisPOS"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MetisPOS",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "license": "LICENSE"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.business",
+      "artifactName": "metis-pos-${version}-${arch}.${ext}"
+    }
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
@@ -24,15 +162,24 @@
     "@types/node": "^25.3.3",
     "@vitejs/plugin-vue": "^6.0.4",
     "dotenv": "^17.3.1",
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0",
     "laravel-echo": "^2.3.0",
     "laravel-vite-plugin": "^2.1.0",
+    "png-to-ico": "^3.0.1",
     "pusher-js": "^8.4.0",
     "sass": "^1.97.3",
+    "sharp": "^0.35.1",
     "tailwindcss": "^4.1.13",
     "vite": "^7.3.1",
     "vite-plugin-mkcert": "^1.17.9"
   },
-  "name": "nexopos",
+  "name": "metis-pos",
+  "version": "1.0.0",
+  "description": "MetisPOS - Point of Sale System",
+  "homepage": "https://metis-pos.com",
+  "author": "MetisPOS <support@metis-pos.com>",
+  "license": "GPL-3.0",
   "dependencies": {
     "@ckeditor/ckeditor5-vue": "^5.1.0",
     "@dicebear/avataaars": "^9.3.1",

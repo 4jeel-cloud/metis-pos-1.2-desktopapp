@@ -10,7 +10,7 @@
                     <p class="text-center ">{{ __( 'No payment type has been selected on the settings. Please check your POS features and choose the supported order type' ) }}</p>
                     <div class="flex justify-center mt-4 mb-2 -mx-2">
                         <div class="px-2">
-                            <ns-link target="_blank" type="info" href="https://my.nexopos.com/en/documentation/components/order-types">{{ __( 'Read More' ) }}</ns-link>
+                            <ns-link target="_blank" type="info" href="https://docs.metis-pos.com/en/documentation/components/order-types">{{ __( 'Read More' ) }}</ns-link>
                         </div>
                         <div class="px-2">
                             <ns-link target="_blank" type="info" :href="urls.order_type_url">{{ __( 'Configure' ) }}</ns-link>

@@ -1,14 +1,15 @@
 {
-    "name": "blair2004/nexopos",
+    "name": "blair2004/metis-pos",
     "type": "project",
-    "description": "The Free Modern Point Of Sale System build with Laravel, TailwindCSS and Vue.js.",
+    "description": "MetisPOS: Point of Sale System built with Laravel, TailwindCSS and Vue.js.",
     "keywords": [
-        "nexopos",
+        "metis-pos",
         "point of sale",
+        "metis-pos",
         "pos",
         "pos system"
     ],
-    "license": "MIT",
+    "license": "GPL-3.0",
     "require": {
         "php": "^8.2.0",
         "brianium/paratest": "^7.1",
@@ -79,9 +80,9 @@
             "@php artisan package:discover --ansi"
         ],
         "post-install-cmd": [
-            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php -r \"!file_exists('.env') && copy('.env.example', '.env');\"",
             "@php artisan key:generate --ansi",
-            "@php -r \"file_exists('public/storage');\" || artisan storage:link --ansi",
+            "@php artisan storage:link --ansi",
             "@php artisan ns:translate --symlink --force",
             "@php artisan modules:symlink"
         ],

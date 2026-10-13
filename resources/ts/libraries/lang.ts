@@ -1,6 +1,6 @@
 declare const nsLanguage;
 
-export const __   =   function( text, namespace = 'NexoPOS' ) {
+export const __   =   function( text, namespace = "MetisPOS" ) {
     return nsLanguage.getEntries( namespace ) ? (nsLanguage.getEntries( namespace )[ text ] || text ) : text;
 }
 

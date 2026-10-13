@@ -17,8 +17,8 @@
             </div>
             <div class="body">
                 <div class="h-40 flex items-center justify-center">
-                    <div class="rounded-full border-4 border-secondary bg-white shadow-lg overflow-hidden">
-                        <ns-avatar-image  :size="32" :url="user.attributes.avatar_link" :name="user.username"></ns-avatar-image>
+                    <div class="rounded-full border-4 border-secondary bg-primary flex items-center justify-center shadow-lg" style="width:8rem;height:8rem;">
+                        <span class="text-white font-bold text-4xl uppercase select-none">{{ (user.username || 'U').charAt(0) }}</span>
                     </div>
                 </div>
                 <div class="border-t ns-box-body">
@@ -34,13 +34,12 @@
     </div>
 </template>
 <script>
-import nsAvatarImage from '~/components/ns-avatar-image.vue';
 import { nsCurrency } from '~/filters/currency';
 import { __ } from '~/libraries/lang';
 
 export default {
     name: 'ns-profile-widget',
-    components: { nsAvatarImage },
+    components: {},
     data() {
         return {
             svg: '',

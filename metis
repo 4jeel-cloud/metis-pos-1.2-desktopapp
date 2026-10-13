@@ -1,0 +1,4 @@
+#!/bin/bash
+exec php -d "extension=/tmp/opencode/php-ext/pdo_sqlite.so" \
+         -d "extension=/tmp/opencode/php-ext/sqlite3.so" \
+         "$(dirname "$0")/artisan" "$@"

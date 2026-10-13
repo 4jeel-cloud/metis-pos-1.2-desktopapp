@@ -43,7 +43,7 @@ test.describe('Dashboard', () => {
 
         await page.goto('/dashboard');
 
-        // NexoPOS redirects unauthenticated users to /sign-in
+        // MetisPOS redirects unauthenticated users to /sign-in
         await page.waitForURL(/sign-in|login/, { timeout: 10_000 });
         expect(page.url()).toMatch(/sign-in|login/);
 

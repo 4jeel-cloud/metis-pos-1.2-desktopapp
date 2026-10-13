@@ -1,5 +1,5 @@
 <template>
-    <div class="flex card-widget widget-handle flex-auto flex-col rounded-lg shadow-lg bg-gradient-to-br from-indigo-400 to-indigo-600 px-3 py-5">
+    <div class="flex card-widget widget-handle flex-auto flex-col rounded-lg shadow-lg bg-gradient-to-br from-warning-secondary to-warning-tertiary px-3 py-5">
         <div class="flex flex-row md:flex-col flex-auto">
             <div class="w-1/2 md:w-full flex md:flex-col md:items-start items-center justify-center">
                 <div class="flex justify-between w-full items-center">

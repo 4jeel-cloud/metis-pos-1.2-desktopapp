@@ -88,7 +88,7 @@ export default {
                     message: __( 'The product "{product}" can\'t be added from a search field, as "Accurate Tracking" is enabled. Would you like to learn more ?' ).replace( '{product}', product.name ),
                     onAction: ( action ) => {
                         if ( action ) {
-                            window.open( 'https://my.nexopos.com/en/documentation/troubleshooting/accurate-tracking', '_blank' );
+                            window.open( 'https://docs.metis-pos.com/en/documentation/troubleshooting/accurate-tracking', '_blank' );
                         }
                     }
                 });

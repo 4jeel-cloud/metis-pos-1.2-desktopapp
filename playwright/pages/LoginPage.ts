@@ -1,7 +1,7 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 
 /**
- * Page Object Model for the NexoPOS sign-in page (/sign-in).
+ * Page Object Model for the MetisPOS sign-in page (/sign-in).
  *
  * The login form is rendered by the ns-login Vue component.
  * Each field uses :id="field.name", so #username and #password
@@ -39,7 +39,7 @@ export class LoginPage {
     }
 
     async expectErrorVisible() {
-        // NexoPOS shows validation errors in ns-alert elements
+        // MetisPOS shows validation errors in ns-alert elements
         const alert = this.page.locator('.ns-alert, [class*="error"], .text-error-primary').first();
         await expect(alert).toBeVisible({ timeout: 5_000 });
     }
