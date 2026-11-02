@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "62ecb1ce5852a9611dad55a0f608ef8a",
+    "content-hash": "78ab20118815ae8458b16e1b8e621b9a",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1672,16 +1672,16 @@
         },
         {
             "name": "gumlet/php-image-resize",
-            "version": "2.1.3",
+            "version": "3.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/gumlet/php-image-resize.git",
-                "reference": "0cf9469c98f4a90ecad780c9ca7339c37f235e0c"
+                "reference": "cd01c9e8aa2382211d760c825799c8102987a8c2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/gumlet/php-image-resize/zipball/0cf9469c98f4a90ecad780c9ca7339c37f235e0c",
-                "reference": "0cf9469c98f4a90ecad780c9ca7339c37f235e0c",
+                "url": "https://api.github.com/repos/gumlet/php-image-resize/zipball/cd01c9e8aa2382211d760c825799c8102987a8c2",
+                "reference": "cd01c9e8aa2382211d760c825799c8102987a8c2",
                 "shasum": ""
             },
             "require": {
@@ -1692,7 +1692,9 @@
             "require-dev": {
                 "ext-exif": "*",
                 "ext-gd": "*",
+                "friendsofphp/php-cs-fixer": "^3.64",
                 "php-coveralls/php-coveralls": "^2.1",
+                "phpstan/phpstan": "^2.0",
                 "phpunit/phpunit": "^10.0"
             },
             "suggest": {
@@ -1724,9 +1726,9 @@
             ],
             "support": {
                 "issues": "https://github.com/gumlet/php-image-resize/issues",
-                "source": "https://github.com/gumlet/php-image-resize/tree/2.1.3"
+                "source": "https://github.com/gumlet/php-image-resize/tree/3.0.1"
             },
-            "time": "2026-01-09T04:01:14+00:00"
+            "time": "2026-10-06T18:10:28+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
